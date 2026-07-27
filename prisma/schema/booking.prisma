@@ -1,0 +1,22 @@
+model Booking {
+  id            String        @id @default(uuid())
+  
+  propertyId    String
+  property      Property      @relation(fields: [propertyId], references: [id])
+
+  tenantId      String
+  tenant        User          @relation(fields: [tenantId], references: [id])
+
+  moveInDate    DateTime
+  leaseMonths   Int
+  totalRent     Decimal
+
+  isDeleted     Boolean       @default(false)
+
+  bookingStatus BookingStatus @default(PENDING)
+
+  payment       Payment?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}

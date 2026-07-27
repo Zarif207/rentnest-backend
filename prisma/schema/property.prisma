@@ -1,0 +1,27 @@
+model Property {
+  id                 String               @id @default(uuid())
+  title              String
+  description        String
+  address            String
+  city               String
+  division           String
+
+  rentAmount         Decimal
+  bedrooms           Int
+  bathrooms          Int
+  area               Int
+
+  propertyType       PropertyType
+  availabilityStatus AvailabilityStatus @default(AVAILABLE)
+
+  images             Json
+
+  ownerId            String
+  owner              User @relation(fields: [ownerId], references: [id])
+
+  bookings           Booking[]
+  reviews            Review[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
