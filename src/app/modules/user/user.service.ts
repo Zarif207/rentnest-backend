@@ -8,6 +8,24 @@ const createUser = async (payload: any) => {
   return result;
 };
 
+const getAllUsers = async () => {
+  const result = await prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      userStatus: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return result;
+};
+
 export const UserServices = {
   createUser,
+  getAllUsers,
 };
