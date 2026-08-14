@@ -4,10 +4,8 @@ import { UserControllers } from "./user.controller";
 
 const router = express.Router();
 
-router.get(
-  "/",
-  auth("ADMIN"),
-  UserControllers.getAllUsers
-);
+router.get("/", auth("ADMIN"), UserControllers.getAllUsers);
+
+router.patch("/:id", auth("ADMIN"), UserControllers.updateUserStatus);
 
 export const UserRoutes = router;
