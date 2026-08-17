@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { UserServices } from "./user.service";
+import AppError from "../../utils/AppError";
 
 const getAllUsers = catchAsync(async (req, res) => {
   const result = await UserServices.getAllUsers();
@@ -15,7 +16,13 @@ const getAllUsers = catchAsync(async (req, res) => {
 });
 
 const updateUserStatus = catchAsync(async (req, res) => {
-  const result = await UserServices.updateUserStatus(req.params.id, req.body);
+  const { id } = req.params;
+
+  if (!id || Array.isArray(id)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid user ID");
+  }
+
+  const result = await UserServices.updateUserStatus(id, req.body);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

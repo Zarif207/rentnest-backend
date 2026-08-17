@@ -1,0 +1,123 @@
+import { Prisma, $Enums } from "../../../../generated/prisma/client";
+import prisma from "../../../lib/prisma";
+import { TPropertyFilters } from "./property.interface";
+
+const getAllProperties = async (filters: TPropertyFilters) => {
+  const {
+    searchTerm,
+    city,
+    division,
+    propertyType,
+    availabilityStatus,
+    minPrice,
+    maxPrice,
+  } = filters;
+
+  const andConditions: Prisma.PropertyWhereInput[] = [];
+
+  // Search
+  if (searchTerm) {
+    andConditions.push({
+      OR: [
+        {
+          title: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          description: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          city: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          address: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+      ],
+    });
+  }
+
+  // City
+  if (city) {
+    andConditions.push({
+      city: {
+        equals: city,
+        mode: "insensitive",
+      },
+    });
+  }
+
+  // Division
+  if (division) {
+    andConditions.push({
+      division: {
+        equals: division,
+        mode: "insensitive",
+      },
+    });
+  }
+
+  // Property type
+  if (propertyType) {
+    andConditions.push({
+      propertyType: propertyType as $Enums.PropertyType,
+    });
+  }
+
+  // Availability
+  if (availabilityStatus) {
+    andConditions.push({
+      availabilityStatus: availabilityStatus as $Enums.AvailabilityStatus,
+    });
+  }
+
+  // Price range
+  if (minPrice || maxPrice) {
+    andConditions.push({
+      rentAmount: {
+        ...(minPrice ? { gte: Number(minPrice) } : {}),
+        ...(maxPrice ? { lte: Number(maxPrice) } : {}),
+      },
+    });
+  }
+
+  const whereConditions: Prisma.PropertyWhereInput =
+    andConditions.length > 0
+      ? {
+          AND: andConditions,
+        }
+      : {};
+
+  const result = await prisma.property.findMany({
+    where: whereConditions,
+    include: {
+      owner: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return result;
+};
+
+export const PropertyServices = {
+  getAllProperties,
+};
