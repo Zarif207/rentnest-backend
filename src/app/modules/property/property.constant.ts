@@ -12,3 +12,10 @@ export const propertyFilterableFields = [
   "minPrice",
   "maxPrice",
 ];
+
+export const PROPERTY_TYPES = [
+  "APARTMENT",
+  "HOUSE",
+  "STUDIO",
+  "VILLA",
+] as const;

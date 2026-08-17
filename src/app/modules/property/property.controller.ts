@@ -16,6 +16,21 @@ const getAllProperties = catchAsync(async (req, res) => {
   });
 });
 
+const createProperty = catchAsync(async (req, res) => {
+  const result = await PropertyServices.createProperty(
+    req.body,
+    req.user.userId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Property created successfully",
+    data: result,
+  });
+});
+
 export const PropertyControllers = {
   getAllProperties,
+  createProperty,
 };

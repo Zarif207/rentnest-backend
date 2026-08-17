@@ -1,7 +1,31 @@
 import { Prisma, $Enums } from "../../../../generated/prisma/client";
 import prisma from "../../../lib/prisma";
-import { TPropertyFilters } from "./property.interface";
+import { TCreateProperty, TPropertyFilters } from "./property.interface";
 
+const createProperty = async (payload: TCreateProperty, ownerId: string) => {
+  const result = await prisma.property.create({
+    data: {
+      title: payload.title,
+      description: payload.description,
+      address: payload.address,
+      city: payload.city,
+      division: payload.division,
+
+      rentAmount: payload.rentAmount,
+      bedrooms: payload.bedrooms,
+      bathrooms: payload.bathrooms,
+      area: payload.area,
+
+      propertyType: payload.propertyType as $Enums.PropertyType,
+
+      images: payload.images,
+
+      ownerId,
+    },
+  });
+
+  return result;
+};
 const getAllProperties = async (filters: TPropertyFilters) => {
   const {
     searchTerm,
@@ -120,4 +144,5 @@ const getAllProperties = async (filters: TPropertyFilters) => {
 
 export const PropertyServices = {
   getAllProperties,
+  createProperty,
 };
