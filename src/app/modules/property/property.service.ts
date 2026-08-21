@@ -1,6 +1,8 @@
 import { Prisma, $Enums } from "../../../../generated/prisma/client";
 import prisma from "../../../lib/prisma";
 import { TCreateProperty, TPropertyFilters } from "./property.interface";
+import httpStatus from "http-status";
+import AppError from "../../utils/AppError";
 
 const createProperty = async (payload: TCreateProperty, ownerId: string) => {
   const result = await prisma.property.create({
@@ -142,7 +144,35 @@ const getAllProperties = async (filters: TPropertyFilters) => {
   return result;
 };
 
+const getPropertyById = async (id: string) => {
+  const result = await prisma.property.findUnique({
+    where: {
+      id,
+    },
+    include: {
+      owner: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+    },
+  });
+
+  if (!result) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Property not found"
+    );
+  }
+
+  return result;
+};
+
 export const PropertyServices = {
   getAllProperties,
   createProperty,
+  getPropertyById,
 };

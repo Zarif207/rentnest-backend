@@ -30,7 +30,21 @@ const createProperty = catchAsync(async (req, res) => {
   });
 });
 
+const getPropertyById = catchAsync(async (req, res) => {
+  const result = await PropertyServices.getPropertyById(
+    req.params.id as string,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Property retrieved successfully",
+    data: result,
+  });
+});
+
 export const PropertyControllers = {
   getAllProperties,
   createProperty,
+  getPropertyById,
 };
