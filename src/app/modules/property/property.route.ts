@@ -11,10 +11,17 @@ router.get("/:id", PropertyControllers.getPropertyById);
 const landlordRouter = express.Router();
 
 landlordRouter.post("/", auth("LANDLORD"), PropertyControllers.createProperty);
+
 landlordRouter.put(
   "/:id",
   auth("LANDLORD"),
   PropertyControllers.updateProperty,
+);
+
+landlordRouter.delete(
+  "/:id",
+  auth("LANDLORD"),
+  PropertyControllers.deleteProperty,
 );
 
 export const PropertyRoutes = router;
