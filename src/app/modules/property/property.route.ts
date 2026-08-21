@@ -10,10 +10,12 @@ router.get("/:id", PropertyControllers.getPropertyById);
 
 const landlordRouter = express.Router();
 
-landlordRouter.post(
-  "/",
+landlordRouter.post("/", auth("LANDLORD"), PropertyControllers.createProperty);
+landlordRouter.put(
+  "/:id",
   auth("LANDLORD"),
-  PropertyControllers.createProperty
+  PropertyControllers.updateProperty,
 );
+
 export const PropertyRoutes = router;
 export const LandlordPropertyRoutes = landlordRouter;

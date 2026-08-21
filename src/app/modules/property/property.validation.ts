@@ -37,6 +37,55 @@ const createPropertyValidationSchema = z.object({
   }),
 });
 
+
+const updatePropertyValidationSchema = z.object({
+  body: z.object({
+    title: z.string().min(1).optional(),
+
+    description: z.string().min(1).optional(),
+
+    address: z.string().min(1).optional(),
+
+    city: z.string().min(1).optional(),
+
+    division: z.string().min(1).optional(),
+
+    rentAmount: z.coerce
+      .number()
+      .positive()
+      .optional(),
+
+    bedrooms: z.coerce
+      .number()
+      .int()
+      .nonnegative()
+      .optional(),
+
+    bathrooms: z.coerce
+      .number()
+      .int()
+      .nonnegative()
+      .optional(),
+
+    area: z.coerce
+      .number()
+      .int()
+      .positive()
+      .optional(),
+
+    propertyType: z.enum(PROPERTY_TYPES).optional(),
+
+    availabilityStatus: z
+      .enum(["AVAILABLE", "RENTED"])
+      .optional(),
+
+    images: z
+      .array(z.string().url())
+      .optional(),
+  }),
+});
+
 export const PropertyValidations = {
   createPropertyValidationSchema,
+  updatePropertyValidationSchema,
 };

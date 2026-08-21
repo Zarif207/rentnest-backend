@@ -1,8 +1,12 @@
 import { Prisma, $Enums } from "../../../../generated/prisma/client";
 import prisma from "../../../lib/prisma";
-import { TCreateProperty, TPropertyFilters } from "./property.interface";
 import httpStatus from "http-status";
 import AppError from "../../utils/AppError";
+import {
+  TCreateProperty,
+  TPropertyFilters,
+  TUpdateProperty,
+} from "./property.interface";
 
 const createProperty = async (payload: TCreateProperty, ownerId: string) => {
   const result = await prisma.property.create({
@@ -162,11 +166,50 @@ const getPropertyById = async (id: string) => {
   });
 
   if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, "Property not found");
+  }
+
+  return result;
+};
+
+const updateProperty = async (
+  id: string,
+  ownerId: string,
+  payload: TUpdateProperty,
+) => {
+  const property = await prisma.property.findUnique({
+    where: {
+      id,
+    },
+  });
+
+  if (!property) {
+    throw new AppError(httpStatus.NOT_FOUND, "Property not found");
+  }
+
+  if (property.ownerId !== ownerId) {
     throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Property not found"
+      httpStatus.FORBIDDEN,
+      "You are not allowed to update this property",
     );
   }
+
+  const result = await prisma.property.update({
+    where: {
+      id,
+    },
+    data: {
+      ...payload,
+
+      propertyType: payload.propertyType
+        ? (payload.propertyType as $Enums.PropertyType)
+        : undefined,
+
+      availabilityStatus: payload.availabilityStatus
+        ? (payload.availabilityStatus as $Enums.AvailabilityStatus)
+        : undefined,
+    },
+  });
 
   return result;
 };
@@ -175,4 +218,5 @@ export const PropertyServices = {
   getAllProperties,
   createProperty,
   getPropertyById,
+  updateProperty,
 };
