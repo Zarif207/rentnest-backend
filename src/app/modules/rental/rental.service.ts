@@ -6,7 +6,7 @@ import { ICreateRentalRequest } from "./rental.interface";
 
 const createRentalRequest = async (
   tenantId: string,
-  payload: ICreateRentalRequest
+  payload: ICreateRentalRequest,
 ) => {
   const { propertyId, moveInDate, leaseMonths } = payload;
 
@@ -23,7 +23,7 @@ const createRentalRequest = async (
   if (property.availabilityStatus !== "AVAILABLE") {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "This property is not available for rent"
+      "This property is not available for rent",
     );
   }
 
@@ -39,7 +39,7 @@ const createRentalRequest = async (
   if (existingRequest) {
     throw new AppError(
       httpStatus.CONFLICT,
-      "You already have a pending rental request for this property"
+      "You already have a pending rental request for this property",
     );
   }
 
@@ -78,10 +78,7 @@ const getMyRentalRequests = async (tenantId: string) => {
   return rentalRequests;
 };
 
-const getRentalRequestById = async (
-  rentalId: string,
-  userId: string
-) => {
+const getRentalRequestById = async (rentalId: string, userId: string) => {
   const rentalRequest = await prisma.booking.findFirst({
     where: {
       id: rentalId,
@@ -94,10 +91,7 @@ const getRentalRequestById = async (
   });
 
   if (!rentalRequest) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Rental request not found"
-    );
+    throw new AppError(httpStatus.NOT_FOUND, "Rental request not found");
   }
 
   if (
@@ -106,15 +100,93 @@ const getRentalRequestById = async (
   ) {
     throw new AppError(
       httpStatus.FORBIDDEN,
-      "You are not authorized to view this rental request"
+      "You are not authorized to view this rental request",
     );
   }
 
   return rentalRequest;
 };
 
+const getLandlordRentalRequests = async (landlordId: string) => {
+  const rentalRequests = await prisma.booking.findMany({
+    where: {
+      isDeleted: false,
+      property: {
+        ownerId: landlordId,
+      },
+    },
+    include: {
+      property: true,
+      tenant: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return rentalRequests;
+};
+
+const updateRentalRequestStatus = async (
+  rentalId: string,
+  landlordId: string,
+  status: "APPROVED" | "REJECTED",
+) => {
+  const rentalRequest = await prisma.booking.findFirst({
+    where: {
+      id: rentalId,
+      isDeleted: false,
+      property: {
+        ownerId: landlordId,
+      },
+    },
+  });
+
+  if (!rentalRequest) {
+    throw new AppError(httpStatus.NOT_FOUND, "Rental request not found");
+  }
+
+  if (rentalRequest.bookingStatus !== "PENDING") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Only pending rental requests can be approved or rejected",
+    );
+  }
+
+  const updatedRequest = await prisma.booking.update({
+    where: {
+      id: rentalId,
+    },
+    data: {
+      bookingStatus: status,
+    },
+    include: {
+      property: true,
+      tenant: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+    },
+  });
+
+  return updatedRequest;
+};
+
 export const RentalServices = {
   createRentalRequest,
   getMyRentalRequests,
   getRentalRequestById,
+  getLandlordRentalRequests,
+  updateRentalRequestStatus,
 };

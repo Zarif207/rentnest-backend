@@ -7,7 +7,7 @@ import { RentalServices } from "./rental.service";
 const createRentalRequest = catchAsync(async (req, res) => {
   const result = await RentalServices.createRentalRequest(
     req.user.userId,
-    req.body
+    req.body,
   );
 
   sendResponse(res, {
@@ -19,9 +19,7 @@ const createRentalRequest = catchAsync(async (req, res) => {
 });
 
 const getMyRentalRequests = catchAsync(async (req, res) => {
-  const result = await RentalServices.getMyRentalRequests(
-    req.user.userId
-  );
+  const result = await RentalServices.getMyRentalRequests(req.user.userId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -34,7 +32,7 @@ const getMyRentalRequests = catchAsync(async (req, res) => {
 const getRentalRequestById = catchAsync(async (req, res) => {
   const result = await RentalServices.getRentalRequestById(
     req.params.id as string,
-    req.user.userId
+    req.user.userId,
   );
 
   sendResponse(res, {
@@ -45,8 +43,38 @@ const getRentalRequestById = catchAsync(async (req, res) => {
   });
 });
 
+const getLandlordRentalRequests = catchAsync(async (req, res) => {
+  const result = await RentalServices.getLandlordRentalRequests(
+    req.user.userId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Landlord rental requests retrieved successfully",
+    data: result,
+  });
+});
+
+const updateRentalRequestStatus = catchAsync(async (req, res) => {
+  const result = await RentalServices.updateRentalRequestStatus(
+    req.params.id as string,
+    req.user.userId,
+    req.body.bookingStatus,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Rental request status updated successfully",
+    data: result,
+  });
+});
+
 export const RentalControllers = {
   createRentalRequest,
   getMyRentalRequests,
   getRentalRequestById,
+  getLandlordRentalRequests,
+  updateRentalRequestStatus,
 };
