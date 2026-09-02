@@ -4,10 +4,7 @@ import prisma from "../../../lib/prisma";
 import AppError from "../../utils/AppError";
 import { ICreateReview } from "./review.interface";
 
-const createReview = async (
-  userId: string,
-  payload: ICreateReview,
-) => {
+const createReview = async (userId: string, payload: ICreateReview) => {
   const { propertyId, rating, comment } = payload;
 
   const property = await prisma.property.findUnique({
@@ -17,10 +14,7 @@ const createReview = async (
   });
 
   if (!property) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Property not found",
-    );
+    throw new AppError(httpStatus.NOT_FOUND, "Property not found");
   }
 
   const approvedBooking = await prisma.booking.findFirst({
@@ -74,6 +68,38 @@ const createReview = async (
   return review;
 };
 
+const getPropertyReviews = async (propertyId: string) => {
+  const property = await prisma.property.findUnique({
+    where: {
+      id: propertyId,
+    },
+  });
+
+  if (!property) {
+    throw new AppError(httpStatus.NOT_FOUND, "Property not found");
+  }
+
+  const reviews = await prisma.review.findMany({
+    where: {
+      propertyId,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return reviews;
+};
+
 export const ReviewServices = {
   createReview,
+  getPropertyReviews,
 };
