@@ -2,6 +2,8 @@ import httpStatus from "http-status";
 import prisma from "../../../lib/prisma";
 import AppError from "../../utils/AppError";
 import { ICreatePayment } from "./payment.interface";
+import stripe from "../../../config/stripe";
+
 
 const createPayment = async (tenantId: string, payload: ICreatePayment) => {
   const { bookingId, transactionId, amount, paymentMethod } = payload;
@@ -75,6 +77,81 @@ const createPayment = async (tenantId: string, payload: ICreatePayment) => {
   });
 
   return payment;
+};
+
+const createStripeCheckoutSession = async (
+  tenantId: string,
+  bookingId: string,
+) => {
+  const booking = await prisma.booking.findUnique({
+    where: {
+      id: bookingId,
+    },
+    include: {
+      payment: true,
+      property: true,
+    },
+  });
+
+  if (!booking || booking.isDeleted) {
+    throw new AppError(httpStatus.NOT_FOUND, "Rental booking not found");
+  }
+
+  if (booking.tenantId !== tenantId) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "You are not authorized to pay for this booking",
+    );
+  }
+
+  if (booking.bookingStatus !== "APPROVED") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Payment can only be made for an approved rental",
+    );
+  }
+
+  if (booking.payment) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      "Payment has already been created for this rental",
+    );
+  }
+
+  const amount = Number(booking.totalRent);
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: `RentNest - ${booking.property.title}`,
+          },
+          unit_amount: Math.round(amount * 100),
+        },
+        quantity: 1,
+      },
+    ],
+
+    metadata: {
+      bookingId: booking.id,
+      tenantId: booking.tenantId,
+    },
+
+    success_url:
+      "http://localhost:3000/payment/success?session_id={CHECKOUT_SESSION_ID}",
+
+    cancel_url:
+      "http://localhost:3000/payment/cancel",
+  });
+
+  return {
+    sessionId: session.id,
+    checkoutUrl: session.url,
+  };
 };
 
 const getMyPayments = async (tenantId: string) => {
@@ -204,6 +281,7 @@ const confirmPayment = async (paymentId: string, tenantId: string) => {
 
 export const PaymentServices = {
   createPayment,
+  createStripeCheckoutSession,
   getMyPayments,
   getPaymentById,
   confirmPayment,

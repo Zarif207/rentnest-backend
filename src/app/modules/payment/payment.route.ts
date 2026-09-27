@@ -32,4 +32,10 @@ router.patch(
   PaymentControllers.confirmPayment
 );
 
+router.post(
+  "/checkout",
+  auth("TENANT"),
+  PaymentControllers.createStripeCheckoutSession,
+);
+
 export const PaymentRoutes = router;
