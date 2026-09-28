@@ -3,6 +3,7 @@ import prisma from "../../../lib/prisma";
 import AppError from "../../utils/AppError";
 import { ICreatePayment } from "./payment.interface";
 import stripe from "../../../config/stripe";
+import Stripe from "stripe";
 
 
 const createPayment = async (tenantId: string, payload: ICreatePayment) => {
@@ -154,6 +155,86 @@ const createStripeCheckoutSession = async (
   };
 };
 
+const handleStripeWebhook = async (
+  payload: Buffer,
+  signature: string,
+) => {
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      payload,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET as string,
+    );
+  } catch (error) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Invalid Stripe webhook signature",
+    );
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+
+    const bookingId = session.metadata?.bookingId;
+
+    if (!bookingId) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Booking ID missing from Stripe session",
+      );
+    }
+
+    const payment = await prisma.payment.findUnique({
+      where: {
+        bookingId,
+      },
+      include: {
+        booking: true,
+      },
+    });
+
+    if (!payment) {
+      throw new AppError(
+        httpStatus.NOT_FOUND,
+        "Payment record not found",
+      );
+    }
+
+    if (payment.paymentStatus === "PAID") {
+      return payment;
+    }
+
+    const confirmedPayment = await prisma.$transaction(async (tx) => {
+      const updatedPayment = await tx.payment.update({
+        where: {
+          id: payment.id,
+        },
+        data: {
+          paymentStatus: "PAID",
+          paymentDate: new Date(),
+        },
+      });
+
+      await tx.property.update({
+        where: {
+          id: payment.booking.propertyId,
+        },
+        data: {
+          availabilityStatus: "RENTED",
+        },
+      });
+
+      return updatedPayment;
+    });
+
+    return confirmedPayment;
+  }
+
+  return null;
+};
+
 const getMyPayments = async (tenantId: string) => {
   const payments = await prisma.payment.findMany({
     where: {
@@ -279,9 +360,11 @@ const confirmPayment = async (paymentId: string, tenantId: string) => {
   return result;
 };
 
+
 export const PaymentServices = {
   createPayment,
   createStripeCheckoutSession,
+  handleStripeWebhook,
   getMyPayments,
   getPaymentById,
   confirmPayment,
