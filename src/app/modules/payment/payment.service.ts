@@ -149,9 +149,20 @@ const createStripeCheckoutSession = async (
       "http://localhost:3000/payment/cancel",
   });
 
+  const payment = await prisma.payment.create({
+  data: {
+    bookingId: booking.id,
+    transactionId: session.id,
+    amount,
+    paymentMethod: "STRIPE",
+    paymentStatus: "PENDING",
+  },
+});
+
   return {
     sessionId: session.id,
     checkoutUrl: session.url,
+    paymentId: payment.id,
   };
 };
 
