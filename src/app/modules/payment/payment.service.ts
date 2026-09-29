@@ -6,79 +6,6 @@ import stripe from "../../../config/stripe";
 import Stripe from "stripe";
 
 
-const createPayment = async (tenantId: string, payload: ICreatePayment) => {
-  const { bookingId, transactionId, amount, paymentMethod } = payload;
-
-  const booking = await prisma.booking.findUnique({
-    where: {
-      id: bookingId,
-    },
-    include: {
-      payment: true,
-    },
-  });
-
-  if (!booking || booking.isDeleted) {
-    throw new AppError(httpStatus.NOT_FOUND, "Rental booking not found");
-  }
-
-  if (booking.tenantId !== tenantId) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      "You are not authorized to make payment for this booking",
-    );
-  }
-
-  if (booking.bookingStatus !== "APPROVED") {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Payment can only be made for an approved rental",
-    );
-  }
-
-  if (booking.payment) {
-    throw new AppError(
-      httpStatus.CONFLICT,
-      "Payment has already been created for this rental",
-    );
-  }
-
-  if (Number(booking.totalRent) !== amount) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Payment amount does not match the rental amount",
-    );
-  }
-
-  const existingTransaction = await prisma.payment.findUnique({
-    where: {
-      transactionId,
-    },
-  });
-
-  if (existingTransaction) {
-    throw new AppError(httpStatus.CONFLICT, "Transaction ID already exists");
-  }
-
-  const payment = await prisma.payment.create({
-    data: {
-      bookingId,
-      transactionId,
-      amount,
-      paymentMethod,
-      paymentStatus: "PENDING",
-    },
-    include: {
-      booking: {
-        include: {
-          property: true,
-        },
-      },
-    },
-  });
-
-  return payment;
-};
 
 const createStripeCheckoutSession = async (
   tenantId: string,
@@ -145,19 +72,18 @@ const createStripeCheckoutSession = async (
     success_url:
       "http://localhost:3000/payment/success?session_id={CHECKOUT_SESSION_ID}",
 
-    cancel_url:
-      "http://localhost:3000/payment/cancel",
+    cancel_url: "http://localhost:3000/payment/cancel",
   });
 
   const payment = await prisma.payment.create({
-  data: {
-    bookingId: booking.id,
-    transactionId: session.id,
-    amount,
-    paymentMethod: "STRIPE",
-    paymentStatus: "PENDING",
-  },
-});
+    data: {
+      bookingId: booking.id,
+      transactionId: session.id,
+      amount,
+      paymentMethod: "STRIPE",
+      paymentStatus: "PENDING",
+    },
+  });
 
   return {
     sessionId: session.id,
@@ -166,17 +92,14 @@ const createStripeCheckoutSession = async (
   };
 };
 
-const handleStripeWebhook = async (
-  payload: Buffer,
-  signature: string,
-) => {
+const handleStripeWebhook = async (payload: Buffer, signature: string) => {
   let event: Stripe.Event;
 
   try {
     event = stripe.webhooks.constructEvent(
       payload,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET as string,
+      process.env.STRIPE_WEBHOOK_SECRET as string
     );
   } catch (error) {
     throw new AppError(
@@ -187,6 +110,10 @@ const handleStripeWebhook = async (
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
+
+    if (session.payment_status !== "paid") {
+      return null;
+    }
 
     const bookingId = session.metadata?.bookingId;
 
@@ -207,10 +134,7 @@ const handleStripeWebhook = async (
     });
 
     if (!payment) {
-      throw new AppError(
-        httpStatus.NOT_FOUND,
-        "Payment record not found",
-      );
+      throw new AppError(httpStatus.NOT_FOUND, "Payment record not found");
     }
 
     if (payment.paymentStatus === "PAID") {
@@ -297,11 +221,7 @@ const getPaymentById = async (paymentId: string, tenantId: string) => {
   return payment;
 };
 
-
-
-
 export const PaymentServices = {
-  createPayment,
   createStripeCheckoutSession,
   handleStripeWebhook,
   getMyPayments,

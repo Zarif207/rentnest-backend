@@ -14,6 +14,11 @@ const createPaymentSchema = z.object({
   paymentMethod: z.enum(["STRIPE", "CASH"]),
 });
 
+const createStripeCheckoutSessionSchema = z.object({
+  bookingId: z.string().uuid("Invalid booking ID"),
+});
+
 export const PaymentValidation = {
   createPaymentSchema,
+  createStripeCheckoutSessionSchema,
 };

@@ -7,13 +7,6 @@ import { PaymentValidation } from "./payment.validation";
 
 const router = express.Router();
 
-router.post(
-  "/",
-  auth("TENANT"),
-  validateRequest(PaymentValidation.createPaymentSchema),
-  PaymentControllers.createPayment
-);
-
 router.get(
   "/",
   auth("TENANT"),
@@ -29,7 +22,8 @@ router.get(
 router.post(
   "/checkout",
   auth("TENANT"),
-  PaymentControllers.createStripeCheckoutSession,
+  validateRequest(PaymentValidation.createStripeCheckoutSessionSchema),
+  PaymentControllers.createStripeCheckoutSession
 );
 
 export const PaymentRoutes = router;

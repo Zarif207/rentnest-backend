@@ -4,16 +4,7 @@ import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { PaymentServices } from "./payment.service";
 
-const createPayment = catchAsync(async (req, res) => {
-  const result = await PaymentServices.createPayment(req.user.userId, req.body);
 
-  sendResponse(res, {
-    statusCode: httpStatus.CREATED,
-    success: true,
-    message: "Payment created successfully",
-    data: result,
-  });
-});
 
 const getMyPayments = catchAsync(async (req, res) => {
   const result = await PaymentServices.getMyPayments(req.user.userId);
@@ -63,7 +54,6 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
 });
 
 export const PaymentControllers = {
-  createPayment,
   getMyPayments,
   getPaymentById,
   createStripeCheckoutSession,
