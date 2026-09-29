@@ -26,12 +26,6 @@ router.get(
   PaymentControllers.getPaymentById
 );
 
-router.patch(
-  "/:id/confirm",
-  auth("TENANT"),
-  PaymentControllers.confirmPayment
-);
-
 router.post(
   "/checkout",
   auth("TENANT"),

@@ -297,81 +297,6 @@ const getPaymentById = async (paymentId: string, tenantId: string) => {
   return payment;
 };
 
-const confirmPayment = async (paymentId: string, tenantId: string) => {
-  const payment = await prisma.payment.findUnique({
-    where: {
-      id: paymentId,
-    },
-    include: {
-      booking: true,
-    },
-  });
-
-  if (!payment) {
-    throw new AppError(httpStatus.NOT_FOUND, "Payment not found");
-  }
-
-  if (payment.booking.tenantId !== tenantId) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      "You are not authorized to confirm this payment",
-    );
-  }
-
-  if (payment.paymentStatus === "PAID") {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Payment has already been confirmed",
-    );
-  }
-
-  if (payment.paymentStatus === "FAILED") {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Failed payment cannot be confirmed",
-    );
-  }
-
-  const confirmedPayment = await prisma.$transaction(async (tx) => {
-    const updatedPayment = await tx.payment.update({
-      where: {
-        id: paymentId,
-      },
-      data: {
-        paymentStatus: "PAID",
-        paymentDate: new Date(),
-      },
-    });
-
-    await tx.property.update({
-      where: {
-        id: payment.booking.propertyId,
-      },
-      data: {
-        availabilityStatus: "RENTED",
-      },
-    });
-
-    return updatedPayment;
-  });
-
-  const result = await prisma.payment.findUnique({
-    where: {
-      id: confirmedPayment.id,
-    },
-    include: {
-      booking: {
-        include: {
-          property: true,
-        },
-      },
-    },
-  });
-
-  return result;
-};
-
-
 
 
 
@@ -381,5 +306,4 @@ export const PaymentServices = {
   handleStripeWebhook,
   getMyPayments,
   getPaymentById,
-  confirmPayment,
 };

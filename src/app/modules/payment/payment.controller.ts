@@ -40,20 +40,6 @@ const getPaymentById = catchAsync(async (req, res) => {
   });
 });
 
-const confirmPayment = catchAsync(async (req, res) => {
-  const result = await PaymentServices.confirmPayment(
-    req.params.id as string,
-    req.user.userId,
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Payment confirmed successfully",
-    data: result,
-  });
-});
-
 const createStripeCheckoutSession = catchAsync(async (req, res) => {
   const result = await PaymentServices.createStripeCheckoutSession(
     req.user.userId,
@@ -80,7 +66,6 @@ export const PaymentControllers = {
   createPayment,
   getMyPayments,
   getPaymentById,
-  confirmPayment,
   createStripeCheckoutSession,
   handleStripeWebhook,
 };
