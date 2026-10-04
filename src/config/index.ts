@@ -14,4 +14,5 @@ export default {
     "30d") as SignOptions["expiresIn"],
 
   stripe_secret: process.env.STRIPE_SECRET as string,
+  stripe_webhook_secret: process.env.STRIPE_WEBHOOK_SECRET as string,
 };

@@ -4,6 +4,7 @@ import AppError from "../../utils/AppError";
 import { ICreatePayment } from "./payment.interface";
 import stripe from "../../../config/stripe";
 import Stripe from "stripe";
+import config from "../../../config";
 
 
 
@@ -99,7 +100,7 @@ const handleStripeWebhook = async (payload: Buffer, signature: string) => {
     event = stripe.webhooks.constructEvent(
       payload,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET as string
+      config.stripe_webhook_secret
     );
   } catch (error) {
     throw new AppError(
