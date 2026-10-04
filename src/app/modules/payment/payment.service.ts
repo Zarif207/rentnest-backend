@@ -1,12 +1,9 @@
 import httpStatus from "http-status";
 import prisma from "../../../lib/prisma";
 import AppError from "../../utils/AppError";
-import { ICreatePayment } from "./payment.interface";
 import stripe from "../../../config/stripe";
 import Stripe from "stripe";
 import config from "../../../config";
-
-
 
 const createStripeCheckoutSession = async (
   tenantId: string,
@@ -100,7 +97,7 @@ const handleStripeWebhook = async (payload: Buffer, signature: string) => {
     event = stripe.webhooks.constructEvent(
       payload,
       signature,
-      config.stripe_webhook_secret
+      config.stripe_webhook_secret,
     );
   } catch (error) {
     throw new AppError(
@@ -136,6 +133,13 @@ const handleStripeWebhook = async (payload: Buffer, signature: string) => {
 
     if (!payment) {
       throw new AppError(httpStatus.NOT_FOUND, "Payment record not found");
+    }
+
+    if (payment.transactionId !== session.id) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Stripe session does not match payment record",
+      );
     }
 
     if (payment.paymentStatus === "PAID") {
