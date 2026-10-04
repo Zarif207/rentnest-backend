@@ -75,10 +75,6 @@ const updatePropertyValidationSchema = z.object({
 
     propertyType: z.enum(PROPERTY_TYPES).optional(),
 
-    availabilityStatus: z
-      .enum(["AVAILABLE", "RENTED"])
-      .optional(),
-
     images: z
       .array(z.string().url())
       .optional(),

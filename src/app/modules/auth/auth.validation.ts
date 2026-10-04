@@ -6,7 +6,6 @@ const registerValidationSchema = z.object({
     email: z.email(),
     password: z.string().min(6),
     phone: z.string().optional(),
-    role: z.enum(["ADMIN", "LANDLORD", "TENANT"]),
   }),
 });
 

@@ -1,8 +1,9 @@
 import prisma from "../../../lib/prisma";
+import { Prisma } from "../../../../generated/prisma/client";
 import AppError from "../../utils/AppError";
 import httpStatus from "http-status";
 
-const createUser = async (payload: any) => {
+const createUser = async (payload: Prisma.UserCreateInput) => {
   const result = await prisma.user.create({
     data: payload,
   });

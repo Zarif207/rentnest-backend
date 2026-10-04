@@ -5,9 +5,9 @@ import AppError from "../../utils/AppError";
 import httpStatus from "http-status";
 import { jwtHelper } from "../../helpers/jwtHelper";
 import config from "../../../config";
-import { TLoginUser } from "./auth.interface";
+import { TLoginUser, TRegisterUser } from "./auth.interface";
 
-const registerUser = async (payload: any) => {
+const registerUser = async (payload: TRegisterUser) => {
   const isUserExists = await prisma.user.findUnique({
     where: {
       email: payload.email,
@@ -21,7 +21,10 @@ const registerUser = async (payload: any) => {
   const hashedPassword = await bcrypt.hash(payload.password, 10);
   payload.password = hashedPassword;
 
-  const result = await UserServices.createUser(payload);
+  const result = await UserServices.createUser({
+    ...payload,
+    role: "TENANT",
+  });
   const { password, ...userData } = result;
 
   return userData;
