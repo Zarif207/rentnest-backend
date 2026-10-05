@@ -4,6 +4,8 @@ export type TPropertyFilters = {
   division?: string;
   propertyType?: string;
   availabilityStatus?: string;
+  categoryId?: string;
+  amenities?: string;
   minPrice?: string;
   maxPrice?: string;
 };
@@ -22,6 +24,9 @@ export type TCreateProperty = {
 
   propertyType: string;
 
+  categoryId: string;
+  amenities: string[];
+
   images: string[];
 };
 
@@ -37,5 +42,7 @@ export type TUpdateProperty = {
   area?: number;
   propertyType?: string;
   availabilityStatus?: string;
+  categoryId?: string;
+  amenities?: string[];
   images?: string[];
 };

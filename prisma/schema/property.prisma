@@ -14,6 +14,10 @@ model Property {
   propertyType       PropertyType
   availabilityStatus AvailabilityStatus @default(AVAILABLE)
 
+  categoryId         String?
+  category           Category? @relation(fields: [categoryId], references: [id])
+
+  amenities          String[]
   images             Json
 
   ownerId            String

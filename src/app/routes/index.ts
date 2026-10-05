@@ -1,3 +1,4 @@
+import { CategoryRoutes } from "../modules/category/category.route";
 import express from "express";
 import { AuthRoutes } from "../modules/auth/auth.route";
 import { UserRoutes } from "../modules/user/user.route";
@@ -32,6 +33,10 @@ const moduleRoutes = [
   {
     path: "/admin/rentals",
     route: AdminRentalRoutes,
+  },
+  {
+    path: "/categories",
+    route: CategoryRoutes,
   },
   {
     path: "/properties",

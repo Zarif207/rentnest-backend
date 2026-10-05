@@ -31,6 +31,12 @@ const createPropertyValidationSchema = z.object({
 
     propertyType: z.enum(PROPERTY_TYPES),
 
+    categoryId: z.string().uuid("Invalid category ID"),
+
+    amenities: z
+      .array(z.string().min(1, "Amenity cannot be empty"))
+      .min(1, "At least one amenity is required"),
+
     images: z
       .array(z.string().url("Each image must be a valid URL"))
       .min(1, "At least one image is required"),

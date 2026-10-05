@@ -9,6 +9,15 @@ import {
 } from "./property.interface";
 
 const createProperty = async (payload: TCreateProperty, ownerId: string) => {
+  const category = await prisma.category.findUnique({
+    where: {
+      id: payload.categoryId,
+    },
+  });
+
+  if (!category) {
+    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+  }
   const result = await prisma.property.create({
     data: {
       title: payload.title,
@@ -21,11 +30,12 @@ const createProperty = async (payload: TCreateProperty, ownerId: string) => {
       bedrooms: payload.bedrooms,
       bathrooms: payload.bathrooms,
       area: payload.area,
-
       propertyType: payload.propertyType as $Enums.PropertyType,
 
-      images: payload.images,
+      categoryId: payload.categoryId,
+      amenities: payload.amenities,
 
+      images: payload.images,
       ownerId,
     },
   });
