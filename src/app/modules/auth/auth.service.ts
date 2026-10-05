@@ -15,16 +15,16 @@ const registerUser = async (payload: TRegisterUser) => {
   });
 
   if (isUserExists) {
-    throw new Error("User already exists");
+    throw new AppError(httpStatus.CONFLICT, "User already exists");
   }
 
   const hashedPassword = await bcrypt.hash(payload.password, 10);
-  payload.password = hashedPassword;
 
   const result = await UserServices.createUser({
     ...payload,
-    role: "TENANT",
+    password: hashedPassword,
   });
+
   const { password, ...userData } = result;
 
   return userData;

@@ -24,5 +24,13 @@ landlordRouter.delete(
   PropertyControllers.deleteProperty,
 );
 
+const adminRouter = express.Router();
+adminRouter.get(
+  "/",
+  auth("ADMIN"),
+  PropertyControllers.getAllPropertiesForAdmin,
+);
+
 export const PropertyRoutes = router;
 export const LandlordPropertyRoutes = landlordRouter;
+export const AdminPropertyRoutes = adminRouter;

@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import router from "./app/routes";
 import { PaymentControllers } from "./app/modules/payment/payment.controller";
+import globalErrorHandler from "./app/middlewares/globalErrorHandler";
 
 const app: Application = express();
 
@@ -25,5 +26,7 @@ app.get("/", (req: Request, res: Response) => {
     message: "RentNest Backend API is running 🚀",
   });
 });
+
+app.use(globalErrorHandler);
 
 export default app;

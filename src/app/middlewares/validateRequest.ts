@@ -3,7 +3,9 @@ import { ZodSchema } from "zod";
 
 const validateRequest = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const result = schema.safeParse(req.body);
+    const result = schema.safeParse({
+      body: req.body,
+    });
 
     if (!result.success) {
       return res.status(400).json({
@@ -13,7 +15,9 @@ const validateRequest = (schema: ZodSchema) => {
       });
     }
 
-    req.body = result.data;
+    const validatedData = result.data as { body: unknown };
+
+    req.body = validatedData.body;
 
     next();
   };

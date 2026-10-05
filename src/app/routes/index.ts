@@ -1,8 +1,11 @@
 import express from "express";
 import { AuthRoutes } from "../modules/auth/auth.route";
 import { UserRoutes } from "../modules/user/user.route";
-import { LandlordPropertyRoutes } from "../modules/property/property.route";
-import { PropertyRoutes } from "../modules/property/property.route";
+import {
+  LandlordPropertyRoutes,
+  PropertyRoutes,
+  AdminPropertyRoutes,
+} from "../modules/property/property.route";
 import { RentalRoutes } from "../modules/rental/rental.route";
 import { LandlordRoutes } from "../modules/landlord/landlord.route";
 import { PaymentRoutes } from "../modules/payment/payment.route";
@@ -19,6 +22,7 @@ const moduleRoutes = [
     path: "/admin/users",
     route: UserRoutes,
   },
+  { path: "/admin/properties", route: AdminPropertyRoutes },
   {
     path: "/properties",
     route: PropertyRoutes,
@@ -40,9 +44,9 @@ const moduleRoutes = [
     route: PaymentRoutes,
   },
   {
-  path: "/reviews",
-  route: ReviewRoutes,
-},
+    path: "/reviews",
+    route: ReviewRoutes,
+  },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
