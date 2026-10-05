@@ -6,7 +6,10 @@ import {
   PropertyRoutes,
   AdminPropertyRoutes,
 } from "../modules/property/property.route";
-import { RentalRoutes } from "../modules/rental/rental.route";
+import {
+  RentalRoutes,
+  AdminRentalRoutes,
+} from "../modules/rental/rental.route";
 import { LandlordRoutes } from "../modules/landlord/landlord.route";
 import { PaymentRoutes } from "../modules/payment/payment.route";
 import { ReviewRoutes } from "../modules/review/review.route";
@@ -22,7 +25,14 @@ const moduleRoutes = [
     path: "/admin/users",
     route: UserRoutes,
   },
-  { path: "/admin/properties", route: AdminPropertyRoutes },
+  {
+    path: "/admin/properties",
+    route: AdminPropertyRoutes,
+  },
+  {
+    path: "/admin/rentals",
+    route: AdminRentalRoutes,
+  },
   {
     path: "/properties",
     route: PropertyRoutes,

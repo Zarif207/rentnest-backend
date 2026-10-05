@@ -134,6 +134,42 @@ const getLandlordRentalRequests = async (landlordId: string) => {
   return rentalRequests;
 };
 
+const getAllRentalRequestsForAdmin = async () => {
+  const rentalRequests = await prisma.booking.findMany({
+    where: {
+      isDeleted: false,
+    },
+    include: {
+      property: {
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
+        },
+      },
+      tenant: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+      payment: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return rentalRequests;
+};
+
 const updateRentalRequestStatus = async (
   rentalId: string,
   landlordId: string,
@@ -188,5 +224,6 @@ export const RentalServices = {
   getMyRentalRequests,
   getRentalRequestById,
   getLandlordRentalRequests,
+  getAllRentalRequestsForAdmin,
   updateRentalRequestStatus,
 };

@@ -26,4 +26,13 @@ router.get(
   RentalControllers.getRentalRequestById
 );
 
+const adminRouter = express.Router();
+
+adminRouter.get(
+  "/",
+  auth("ADMIN"),
+  RentalControllers.getAllRentalRequestsForAdmin,
+);
+
 export const RentalRoutes = router;
+export const AdminRentalRoutes = adminRouter;
