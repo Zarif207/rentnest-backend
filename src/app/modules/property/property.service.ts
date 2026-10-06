@@ -49,6 +49,8 @@ const getAllProperties = async (filters: TPropertyFilters) => {
     division,
     propertyType,
     availabilityStatus,
+    categoryId,
+    amenities,
     minPrice,
     maxPrice,
   } = filters;
@@ -87,7 +89,6 @@ const getAllProperties = async (filters: TPropertyFilters) => {
     });
   }
 
-  // City
   if (city) {
     andConditions.push({
       city: {
@@ -97,7 +98,6 @@ const getAllProperties = async (filters: TPropertyFilters) => {
     });
   }
 
-  // Division
   if (division) {
     andConditions.push({
       division: {
@@ -107,21 +107,37 @@ const getAllProperties = async (filters: TPropertyFilters) => {
     });
   }
 
-  // Property type
   if (propertyType) {
     andConditions.push({
       propertyType: propertyType as $Enums.PropertyType,
     });
   }
+  if (categoryId) {
+    andConditions.push({
+      categoryId,
+    });
+  }
+  if (amenities) {
+    const requestedAmenities = amenities
+      .split(",")
+      .map((amenity) => amenity.trim())
+      .filter(Boolean);
 
-  // Availability
+    if (requestedAmenities.length > 0) {
+      andConditions.push({
+        amenities: {
+          hasEvery: requestedAmenities,
+        },
+      });
+    }
+  }
+
   if (availabilityStatus) {
     andConditions.push({
       availabilityStatus: availabilityStatus as $Enums.AvailabilityStatus,
     });
   }
 
-  // Price range
   if (minPrice || maxPrice) {
     andConditions.push({
       rentAmount: {
@@ -252,8 +268,8 @@ const deleteProperty = async (id: string, ownerId: string) => {
 };
 
 export const PropertyServices = {
-  getAllProperties,
   createProperty,
+  getAllProperties,
   getPropertyById,
   updateProperty,
   deleteProperty,
