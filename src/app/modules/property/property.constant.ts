@@ -19,3 +19,8 @@ export const PROPERTY_TYPES = [
   "STUDIO",
   "VILLA",
 ] as const;
+
+export const AVAILABILITY_STATUSES = [
+  "AVAILABLE",
+  "RENTED",
+] as const;

@@ -1,6 +1,6 @@
 import { z } from "zod";
+import { PROPERTY_TYPES, AVAILABILITY_STATUSES } from "./property.constant";
 
-import { PROPERTY_TYPES } from "./property.constant";
 
 const createPropertyValidationSchema = z.object({
   body: z.object({
@@ -24,10 +24,7 @@ const createPropertyValidationSchema = z.object({
       .int()
       .nonnegative("Bathrooms cannot be negative"),
 
-    area: z.coerce
-      .number()
-      .int()
-      .positive("Area must be greater than 0"),
+    area: z.coerce.number().int().positive("Area must be greater than 0"),
 
     propertyType: z.enum(PROPERTY_TYPES),
 
@@ -43,17 +40,12 @@ const createPropertyValidationSchema = z.object({
   }),
 });
 
-
 const updatePropertyValidationSchema = z.object({
   body: z.object({
     title: z.string().min(1).optional(),
-
     description: z.string().min(1).optional(),
-
     address: z.string().min(1).optional(),
-
     city: z.string().min(1).optional(),
-
     division: z.string().min(1).optional(),
 
     rentAmount: z.coerce
@@ -80,6 +72,12 @@ const updatePropertyValidationSchema = z.object({
       .optional(),
 
     propertyType: z.enum(PROPERTY_TYPES).optional(),
+    availabilityStatus: z.enum(AVAILABILITY_STATUSES).optional(),
+    categoryId: z.string().uuid("Invalid category ID").optional(),
+
+    amenities: z
+      .array(z.string().min(1, "Amenity cannot be empty"))
+      .optional(),
 
     images: z
       .array(z.string().url())
@@ -87,7 +85,14 @@ const updatePropertyValidationSchema = z.object({
   }),
 });
 
+const propertyIdValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Invalid property ID"),
+  }),
+});
+
 export const PropertyValidations = {
   createPropertyValidationSchema,
   updatePropertyValidationSchema,
+  propertyIdValidationSchema,
 };

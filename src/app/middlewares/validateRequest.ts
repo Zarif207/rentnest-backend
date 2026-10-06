@@ -5,6 +5,8 @@ const validateRequest = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse({
       body: req.body,
+      params: req.params,
+      query: req.query,
     });
 
     if (!result.success) {
@@ -15,9 +17,15 @@ const validateRequest = (schema: ZodSchema) => {
       });
     }
 
-    const validatedData = result.data as { body: unknown };
+    const validatedData = result.data as {
+      body: unknown;
+      params: unknown;
+      query: unknown;
+    };
 
     req.body = validatedData.body;
+    req.params = validatedData.params as Request["params"];
+    req.query = validatedData.query as Request["query"];
 
     next();
   };
