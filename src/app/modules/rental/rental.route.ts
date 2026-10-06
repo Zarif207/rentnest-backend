@@ -11,21 +11,29 @@ router.post(
   "/",
   auth("TENANT"),
   validateRequest(RentalValidation.createRentalRequestSchema),
-  RentalControllers.createRentalRequest
+  RentalControllers.createRentalRequest,
 );
 
-router.get(
-  "/",
-  auth("TENANT"),
-  RentalControllers.getMyRentalRequests
-);
+router.get("/", auth("TENANT"), RentalControllers.getMyRentalRequests);
 
 router.get(
   "/:id",
   auth("TENANT", "LANDLORD"),
-  RentalControllers.getRentalRequestById
+  validateRequest(RentalValidation.rentalIdValidationSchema),
+  RentalControllers.getRentalRequestById,
 );
 
+// Landlord routes
+const landlordRouter = express.Router();
+
+landlordRouter.patch(
+  "/requests/:id",
+  auth("LANDLORD"),
+  validateRequest(RentalValidation.updateRentalStatusSchema),
+  RentalControllers.updateRentalRequestStatus,
+);
+
+// Admin routes
 const adminRouter = express.Router();
 
 adminRouter.get(
@@ -35,4 +43,5 @@ adminRouter.get(
 );
 
 export const RentalRoutes = router;
+export const LandlordRentalRoutes = landlordRouter;
 export const AdminRentalRoutes = adminRouter;
