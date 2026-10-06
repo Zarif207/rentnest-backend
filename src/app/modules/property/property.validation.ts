@@ -91,8 +91,40 @@ const propertyIdValidationSchema = z.object({
   }),
 });
 
+const propertyQueryValidationSchema = z.object({
+  query: z.object({
+    searchTerm: z.string().optional(),
+    city: z.string().optional(),
+    division: z.string().optional(),
+
+    propertyType: z.enum(PROPERTY_TYPES).optional(),
+
+    availabilityStatus: z
+      .enum(AVAILABILITY_STATUSES)
+      .optional(),
+
+    categoryId: z
+      .string()
+      .uuid("Invalid category ID")
+      .optional(),
+
+    amenities: z.string().optional(),
+
+    minPrice: z.coerce
+      .number()
+      .positive("Minimum price must be greater than 0")
+      .optional(),
+
+    maxPrice: z.coerce
+      .number()
+      .positive("Maximum price must be greater than 0")
+      .optional(),
+  }),
+});
+
 export const PropertyValidations = {
   createPropertyValidationSchema,
   updatePropertyValidationSchema,
   propertyIdValidationSchema,
+  propertyQueryValidationSchema,
 };

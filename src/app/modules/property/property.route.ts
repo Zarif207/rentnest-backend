@@ -7,7 +7,12 @@ import { PropertyValidations } from "./property.validation";
 const router = express.Router();
 
 // Public routes
-router.get("/", PropertyControllers.getAllProperties);
+router.get(
+  "/",
+  validateRequest(PropertyValidations.propertyQueryValidationSchema),
+  PropertyControllers.getAllProperties,
+);
+
 router.get(
   "/:id",
   validateRequest(PropertyValidations.propertyIdValidationSchema),
@@ -45,8 +50,11 @@ const adminRouter = express.Router();
 adminRouter.get(
   "/",
   auth("ADMIN"),
+  validateRequest(PropertyValidations.propertyQueryValidationSchema),
   PropertyControllers.getAllPropertiesForAdmin,
 );
+
+
 
 export const PropertyRoutes = router;
 export const LandlordPropertyRoutes = landlordRouter;

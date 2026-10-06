@@ -7,7 +7,12 @@ import { CategoryValidation } from "./category.validation";
 const router = express.Router();
 
 router.get("/", CategoryControllers.getAllCategories);
-router.get("/:id", CategoryControllers.getCategoryById);
+
+router.get(
+  "/:id",
+  validateRequest(CategoryValidation.categoryIdValidationSchema),
+  CategoryControllers.getCategoryById,
+);
 
 router.post(
   "/",
@@ -23,6 +28,11 @@ router.put(
   CategoryControllers.updateCategory,
 );
 
-router.delete("/:id", auth("ADMIN"), CategoryControllers.deleteCategory);
+router.delete(
+  "/:id",
+  auth("ADMIN"),
+  validateRequest(CategoryValidation.categoryIdValidationSchema),
+  CategoryControllers.deleteCategory,
+);
 
 export const CategoryRoutes = router;

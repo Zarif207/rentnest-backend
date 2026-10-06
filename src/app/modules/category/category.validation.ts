@@ -12,7 +12,14 @@ const updateCategoryValidationSchema = z.object({
   }),
 });
 
+const categoryIdValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Invalid category ID"),
+  }),
+});
+
 export const CategoryValidation = {
   createCategoryValidationSchema,
   updateCategoryValidationSchema,
+  categoryIdValidationSchema,
 };
