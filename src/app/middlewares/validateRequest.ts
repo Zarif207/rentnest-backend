@@ -25,7 +25,6 @@ const validateRequest = (schema: ZodSchema) => {
 
     req.body = validatedData.body;
     req.params = validatedData.params as Request["params"];
-    req.query = validatedData.query as Request["query"];
 
     next();
   };

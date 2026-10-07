@@ -9,7 +9,6 @@ import {
 } from "../modules/property/property.route";
 import {
   RentalRoutes,
-  LandlordRentalRoutes,
   AdminRentalRoutes,
 } from "../modules/rental/rental.route";
 import { LandlordRoutes } from "../modules/landlord/landlord.route";
