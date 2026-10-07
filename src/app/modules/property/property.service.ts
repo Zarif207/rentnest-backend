@@ -220,6 +220,18 @@ const updateProperty = async (
     );
   }
 
+  if (payload.categoryId) {
+    const category = await prisma.category.findUnique({
+      where: {
+        id: payload.categoryId,
+      },
+    });
+
+    if (!category) {
+      throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+    }
+  }
+
   const result = await prisma.property.update({
     where: {
       id,

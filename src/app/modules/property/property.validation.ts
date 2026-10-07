@@ -41,6 +41,10 @@ const createPropertyValidationSchema = z.object({
 });
 
 const updatePropertyValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Invalid property ID"),
+  }),
+
   body: z.object({
     title: z.string().min(1).optional(),
     description: z.string().min(1).optional(),
@@ -84,6 +88,7 @@ const updatePropertyValidationSchema = z.object({
       .optional(),
   }),
 });
+
 
 const propertyIdValidationSchema = z.object({
   params: z.object({

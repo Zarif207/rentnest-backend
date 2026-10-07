@@ -32,7 +32,6 @@ landlordRouter.post(
 landlordRouter.put(
   "/:id",
   auth("LANDLORD"),
-  validateRequest(PropertyValidations.propertyIdValidationSchema),
   validateRequest(PropertyValidations.updatePropertyValidationSchema),
   PropertyControllers.updateProperty,
 );
@@ -53,8 +52,6 @@ adminRouter.get(
   validateRequest(PropertyValidations.propertyQueryValidationSchema),
   PropertyControllers.getAllPropertiesForAdmin,
 );
-
-
 
 export const PropertyRoutes = router;
 export const LandlordPropertyRoutes = landlordRouter;
