@@ -60,7 +60,7 @@ const updateRentalRequestStatus = catchAsync(async (req, res) => {
   const result = await RentalServices.updateRentalRequestStatus(
     req.params.id as string,
     req.user.userId,
-    req.body.bookingStatus,
+    req.body.status,
   );
 
   sendResponse(res, {
