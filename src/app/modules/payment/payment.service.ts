@@ -99,7 +99,7 @@ const handleStripeWebhook = async (payload: Buffer, signature: string) => {
       signature,
       config.stripe_webhook_secret,
     );
-  } catch (error) {
+  } catch {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       "Invalid Stripe webhook signature",
@@ -123,12 +123,8 @@ const handleStripeWebhook = async (payload: Buffer, signature: string) => {
     }
 
     const payment = await prisma.payment.findUnique({
-      where: {
-        bookingId,
-      },
-      include: {
-        booking: true,
-      },
+      where: { bookingId },
+      include: { booking: true },
     });
 
     if (!payment) {
@@ -146,21 +142,31 @@ const handleStripeWebhook = async (payload: Buffer, signature: string) => {
       return payment;
     }
 
+    if (payment.booking.bookingStatus !== "APPROVED") {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Only approved rentals can be activated after payment",
+      );
+    }
+
     const confirmedPayment = await prisma.$transaction(async (tx) => {
       const updatedPayment = await tx.payment.update({
-        where: {
-          id: payment.id,
-        },
+        where: { id: payment.id },
         data: {
           paymentStatus: "PAID",
           paymentDate: new Date(),
         },
       });
 
-      await tx.property.update({
-        where: {
-          id: payment.booking.propertyId,
+      await tx.booking.update({
+        where: { id: payment.bookingId },
+        data: {
+          bookingStatus: "ACTIVE",
         },
+      });
+
+      await tx.property.update({
+        where: { id: payment.booking.propertyId },
         data: {
           availabilityStatus: "RENTED",
         },
