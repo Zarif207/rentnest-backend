@@ -26,6 +26,8 @@ enum BookingStatus {
   APPROVED
   REJECTED
   CANCELLED
+  ACTIVE
+  COMPLETED
 }
 
 enum PaymentMethod {
