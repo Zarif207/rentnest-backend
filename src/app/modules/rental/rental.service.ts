@@ -219,6 +219,74 @@ const updateRentalRequestStatus = async (
   return updatedRequest;
 };
 
+const completeRental = async (rentalId: string, landlordId: string) => {
+  const rentalRequest = await prisma.booking.findFirst({
+    where: {
+      id: rentalId,
+      isDeleted: false,
+      property: {
+        ownerId: landlordId,
+      },
+    },
+    include: {
+      payment: true,
+    },
+  });
+
+  if (!rentalRequest) {
+    throw new AppError(httpStatus.NOT_FOUND, "Rental request not found");
+  }
+
+  if (rentalRequest.bookingStatus !== "ACTIVE") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Only active rentals can be completed",
+    );
+  }
+
+  if (rentalRequest.payment?.paymentStatus !== "PAID") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Rental must be paid before it can be completed",
+    );
+  }
+
+  const rentalEndDate = new Date(rentalRequest.moveInDate);
+  rentalEndDate.setMonth(
+    rentalEndDate.getMonth() + rentalRequest.leaseMonths,
+  );
+
+  if (new Date() < rentalEndDate) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Rental cannot be completed before the lease period ends",
+    );
+  }
+
+  const completedRental = await prisma.booking.update({
+    where: {
+      id: rentalId,
+    },
+    data: {
+      bookingStatus: "COMPLETED",
+    },
+    include: {
+      property: true,
+      payment: true,
+      tenant: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+    },
+  });
+
+  return completedRental;
+};
+
 export const RentalServices = {
   createRentalRequest,
   getMyRentalRequests,
@@ -226,4 +294,5 @@ export const RentalServices = {
   getLandlordRentalRequests,
   getAllRentalRequestsForAdmin,
   updateRentalRequestStatus,
+  completeRental,
 };

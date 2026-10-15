@@ -26,8 +26,15 @@ const updateRentalStatusSchema = z.object({
   }),
 });
 
+const completeRentalValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Invalid rental ID"),
+  }),
+});
+
 export const RentalValidation = {
   createRentalRequestSchema,
   rentalIdValidationSchema,
   updateRentalStatusSchema,
+  completeRentalValidationSchema,
 };

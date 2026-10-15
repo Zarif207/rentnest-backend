@@ -20,4 +20,12 @@ router.patch(
   RentalControllers.updateRentalRequestStatus,
 );
 
+router.patch(
+  "/requests/:id/complete",
+  auth("LANDLORD"),
+  validateRequest(RentalValidation.completeRentalValidationSchema),
+  RentalControllers.completeRental,
+);
+
+
 export const LandlordRoutes = router;

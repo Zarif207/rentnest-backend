@@ -71,6 +71,8 @@ const updateRentalRequestStatus = catchAsync(async (req, res) => {
   });
 });
 
+
+
 const getAllRentalRequestsForAdmin = catchAsync(async (req, res) => {
   const result = await RentalServices.getAllRentalRequestsForAdmin();
 
@@ -82,6 +84,22 @@ const getAllRentalRequestsForAdmin = catchAsync(async (req, res) => {
   });
 });
 
+const completeRental = catchAsync(async (req, res) => {
+  const result = await RentalServices.completeRental(
+    req.params.id as string,
+    req.user.userId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Rental completed successfully",
+    data: result,
+  });
+});
+
+
+
 export const RentalControllers = {
   createRentalRequest,
   getMyRentalRequests,
@@ -89,4 +107,5 @@ export const RentalControllers = {
   getLandlordRentalRequests,
   updateRentalRequestStatus,
   getAllRentalRequestsForAdmin,
+  completeRental,
 };
