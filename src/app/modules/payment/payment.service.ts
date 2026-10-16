@@ -139,6 +139,28 @@ const handleStripeWebhook = async (payload: Buffer, signature: string) => {
     }
 
     if (payment.paymentStatus === "PAID") {
+      if (payment.booking.bookingStatus === "APPROVED") {
+        await prisma.$transaction(async (tx) => {
+          await tx.booking.update({
+            where: {
+              id: payment.bookingId,
+            },
+            data: {
+              bookingStatus: "ACTIVE",
+            },
+          });
+
+          await tx.property.update({
+            where: {
+              id: payment.booking.propertyId,
+            },
+            data: {
+              availabilityStatus: "RENTED",
+            },
+          });
+        });
+      }
+
       return payment;
     }
 

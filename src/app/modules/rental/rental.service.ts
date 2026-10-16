@@ -183,10 +183,16 @@ const updateRentalRequestStatus = async (
         ownerId: landlordId,
       },
     },
+    include: {
+      property: true,
+    },
   });
 
   if (!rentalRequest) {
-    throw new AppError(httpStatus.NOT_FOUND, "Rental request not found");
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Rental request not found",
+    );
   }
 
   if (rentalRequest.bookingStatus !== "PENDING") {
@@ -194,6 +200,38 @@ const updateRentalRequestStatus = async (
       httpStatus.BAD_REQUEST,
       "Only pending rental requests can be approved or rejected",
     );
+  }
+
+  // Additional checks are required only when approving a rental.
+  if (status === "APPROVED") {
+    if (rentalRequest.property.availabilityStatus !== "AVAILABLE") {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        "This property is already rented or unavailable",
+      );
+    }
+
+    // Prevent another rental for this property from already
+    // being approved or actively rented.
+    const existingRental = await prisma.booking.findFirst({
+      where: {
+        propertyId: rentalRequest.propertyId,
+        id: {
+          not: rentalId,
+        },
+        isDeleted: false,
+        bookingStatus: {
+          in: ["APPROVED", "ACTIVE"],
+        },
+      },
+    });
+
+    if (existingRental) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        "Another rental for this property has already been approved or is active",
+      );
+    }
   }
 
   const updatedRequest = await prisma.booking.update({

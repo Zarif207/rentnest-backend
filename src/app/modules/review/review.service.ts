@@ -21,7 +21,7 @@ const createReview = async (userId: string, payload: ICreateReview) => {
     where: {
       propertyId,
       tenantId: userId,
-      bookingStatus: "APPROVED",
+      bookingStatus: "COMPLETED",
       isDeleted: false,
     },
   });
