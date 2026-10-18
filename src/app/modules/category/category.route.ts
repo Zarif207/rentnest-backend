@@ -1,8 +1,8 @@
 import express from "express";
-import auth from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
-import { CategoryControllers } from "./category.controller";
-import { CategoryValidation } from "./category.validation";
+import auth from "../../middlewares/auth.js";
+import validateRequest from "../../middlewares/validateRequest.js";
+import { CategoryControllers } from "./category.controller.js";
+import { CategoryValidation } from "./category.validation.js";
 
 const router = express.Router();
 

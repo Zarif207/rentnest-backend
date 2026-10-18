@@ -1,8 +1,8 @@
 import express from "express";
-import auth from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
-import { PropertyControllers } from "./property.controller";
-import { PropertyValidations } from "./property.validation";
+import auth from "../../middlewares/auth.js";
+import validateRequest from "../../middlewares/validateRequest.js";
+import { PropertyControllers } from "./property.controller.js";
+import { PropertyValidations } from "./property.validation.js";
 
 const router = express.Router();
 

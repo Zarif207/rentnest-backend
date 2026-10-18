@@ -1,8 +1,8 @@
 import httpStatus from "http-status";
 
-import prisma from "../../../lib/prisma";
-import AppError from "../../utils/AppError";
-import { ICreateRentalRequest } from "./rental.interface";
+import prisma from "../../../lib/prisma.js";
+import AppError from "../../utils/AppError.js";
+import { ICreateRentalRequest } from "./rental.interface.js";
 
 const createRentalRequest = async (
   tenantId: string,

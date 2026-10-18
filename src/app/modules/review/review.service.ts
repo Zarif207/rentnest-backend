@@ -1,8 +1,8 @@
 import httpStatus from "http-status";
 
-import prisma from "../../../lib/prisma";
-import AppError from "../../utils/AppError";
-import { ICreateReview } from "./review.interface";
+import prisma from "../../../lib/prisma.js";
+import AppError from "../../utils/AppError.js";
+import { ICreateReview } from "./review.interface.js";
 
 const createReview = async (userId: string, payload: ICreateReview) => {
   const { propertyId, rating, comment } = payload;

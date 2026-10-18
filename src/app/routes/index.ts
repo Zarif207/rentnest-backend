@@ -1,19 +1,19 @@
-import { CategoryRoutes } from "../modules/category/category.route";
+import { CategoryRoutes } from "../modules/category/category.route.js";
 import express from "express";
-import { AuthRoutes } from "../modules/auth/auth.route";
-import { UserRoutes } from "../modules/user/user.route";
+import { AuthRoutes } from "../modules/auth/auth.route.js";
+import { UserRoutes } from "../modules/user/user.route.js";
 import {
   LandlordPropertyRoutes,
   PropertyRoutes,
   AdminPropertyRoutes,
-} from "../modules/property/property.route";
+} from "../modules/property/property.route.js";
 import {
   RentalRoutes,
   AdminRentalRoutes,
-} from "../modules/rental/rental.route";
-import { LandlordRoutes } from "../modules/landlord/landlord.route";
-import { PaymentRoutes } from "../modules/payment/payment.route";
-import { ReviewRoutes } from "../modules/review/review.route";
+} from "../modules/rental/rental.route.js";
+import { LandlordRoutes } from "../modules/landlord/landlord.route.js";
+import { PaymentRoutes } from "../modules/payment/payment.route.js";
+import { ReviewRoutes } from "../modules/review/review.route.js";
 
 const router = express.Router();
 

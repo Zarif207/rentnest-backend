@@ -1,9 +1,9 @@
 import express from "express";
 
-import auth from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
-import { PaymentControllers } from "./payment.controller";
-import { PaymentValidation } from "./payment.validation";
+import auth from "../../middlewares/auth.js";
+import validateRequest from "../../middlewares/validateRequest.js";
+import { PaymentControllers } from "./payment.controller.js";
+import { PaymentValidation } from "./payment.validation.js";
 
 const router = express.Router();
 

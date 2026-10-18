@@ -1,11 +1,11 @@
 import bcrypt from "bcryptjs";
-import prisma from "../../../lib/prisma";
-import { UserServices } from "../user/user.service";
-import AppError from "../../utils/AppError";
+import prisma from "../../../lib/prisma.js";
+import { UserServices } from "../user/user.service.js";
+import AppError from "../../utils/AppError.js";
 import httpStatus from "http-status";
-import { jwtHelper } from "../../helpers/jwtHelper";
-import config from "../../../config";
-import { TLoginUser, TRegisterUser } from "./auth.interface";
+import { jwtHelper } from "../../helpers/jwtHelper.js";
+import config from "../../../config/index.js";
+import { TLoginUser, TRegisterUser } from "./auth.interface.js";
 
 const registerUser = async (payload: TRegisterUser) => {
   const isUserExists = await prisma.user.findUnique({

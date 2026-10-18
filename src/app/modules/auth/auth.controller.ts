@@ -1,8 +1,8 @@
 import httpStatus from "http-status";
-import catchAsync from "../../utils/catchAsync";
-import sendResponse from "../../utils/sendResponse";
-import { AuthServices } from "./auth.service";
-import { AuthRequest } from "../../interfaces/auth.types";
+import catchAsync from "../../utils/catchAsync.js";
+import sendResponse from "../../utils/sendResponse.js";
+import { AuthServices } from "./auth.service.js";
+import { AuthRequest } from "../../interfaces/auth.types.js";
 
 const registerUser = catchAsync(async (req, res) => {
   const result = await AuthServices.registerUser(req.body);

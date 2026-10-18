@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PROPERTY_TYPES, AVAILABILITY_STATUSES } from "./property.constant";
+import { PROPERTY_TYPES, AVAILABILITY_STATUSES } from "./property.constant.js";
 
 
 const createPropertyValidationSchema = z.object({

@@ -1,9 +1,9 @@
 import httpStatus from "http-status";
-import prisma from "../../../lib/prisma";
-import AppError from "../../utils/AppError";
-import stripe from "../../../config/stripe";
+import prisma from "../../../lib/prisma.js";
+import AppError from "../../utils/AppError.js";
+import stripe from "../../../config/stripe.js";
 import Stripe from "stripe";
-import config from "../../../config";
+import config from "../../../config/index.js";
 
 const createStripeCheckoutSession = async (
   tenantId: string,

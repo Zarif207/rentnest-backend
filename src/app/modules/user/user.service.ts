@@ -1,6 +1,6 @@
-import prisma from "../../../lib/prisma";
-import { Prisma } from "../../../../generated/prisma/client";
-import AppError from "../../utils/AppError";
+import prisma from "../../../lib/prisma.js";
+import { Prisma } from "../../../../generated/prisma/client.js";
+import AppError from "../../utils/AppError.js";
 import httpStatus from "http-status";
 
 const createUser = async (payload: Prisma.UserCreateInput) => {

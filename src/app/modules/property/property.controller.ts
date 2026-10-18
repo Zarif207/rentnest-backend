@@ -1,9 +1,9 @@
 import httpStatus from "http-status";
 
-import catchAsync from "../../utils/catchAsync";
-import sendResponse from "../../utils/sendResponse";
+import catchAsync from "../../utils/catchAsync.js";
+import sendResponse from "../../utils/sendResponse.js";
 
-import { PropertyServices } from "./property.service";
+import { PropertyServices } from "./property.service.js";
 
 const getAllProperties = catchAsync(async (req, res) => {
   const result = await PropertyServices.getAllProperties(req.query);

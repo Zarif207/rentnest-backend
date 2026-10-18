@@ -1,9 +1,9 @@
 import httpStatus from "http-status";
 import { JwtPayload } from "jsonwebtoken";
-import prisma from "../../lib/prisma";
-import config from "../../config";
-import { jwtHelper } from "../helpers/jwtHelper";
-import AppError from "../utils/AppError";
+import prisma from "../../lib/prisma.js";
+import config from "../../config/index.js";
+import { jwtHelper } from "../helpers/jwtHelper.js";
+import AppError from "../utils/AppError.js";
 import { NextFunction, Request, Response } from "express";
 
 const auth = (...requiredRoles: string[]) => {

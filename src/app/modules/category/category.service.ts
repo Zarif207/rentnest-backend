@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
-import prisma from "../../../lib/prisma";
-import AppError from "../../utils/AppError";
-import { TCreateCategory, TUpdateCategory } from "./category.interface";
+import prisma from "../../../lib/prisma.js";
+import AppError from "../../utils/AppError.js";
+import { TCreateCategory, TUpdateCategory } from "./category.interface.js";
 
 const createCategory = async (payload: TCreateCategory) => {
   const existingCategory = await prisma.category.findUnique({

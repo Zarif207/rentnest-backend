@@ -2,9 +2,9 @@
 import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import router from "./app/routes";
-import { PaymentControllers } from "./app/modules/payment/payment.controller";
-import globalErrorHandler from "./app/middlewares/globalErrorHandler";
+import router from "./app/routes/index.js";
+import { PaymentControllers } from "./app/modules/payment/payment.controller.js";
+import globalErrorHandler from "./app/middlewares/globalErrorHandler.js";
 
 const app: Application = express();
 

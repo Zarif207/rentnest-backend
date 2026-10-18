@@ -1,12 +1,12 @@
-import { Prisma, $Enums } from "../../../../generated/prisma/client";
-import prisma from "../../../lib/prisma";
+import { Prisma, $Enums } from "../../../../generated/prisma/client.js";
+import prisma from "../../../lib/prisma.js";
 import httpStatus from "http-status";
-import AppError from "../../utils/AppError";
+import AppError from "../../utils/AppError.js";
 import {
   TCreateProperty,
   TPropertyFilters,
   TUpdateProperty,
-} from "./property.interface";
+} from "./property.interface.js";
 
 const createProperty = async (payload: TCreateProperty, ownerId: string) => {
   const category = await prisma.category.findUnique({

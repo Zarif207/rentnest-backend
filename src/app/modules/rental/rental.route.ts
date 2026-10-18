@@ -1,9 +1,9 @@
 import express from "express";
 
-import auth from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
-import { RentalControllers } from "./rental.controller";
-import { RentalValidation } from "./rental.validation";
+import auth from "../../middlewares/auth.js";
+import validateRequest from "../../middlewares/validateRequest.js";
+import { RentalControllers } from "./rental.controller.js";
+import { RentalValidation } from "./rental.validation.js";
 
 const router = express.Router();
 
