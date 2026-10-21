@@ -6,12 +6,24 @@ export const propertySearchableFields = [
 ];
 
 export const propertyFilterableFields = [
+  "searchTerm",
   "city",
+  "division",
   "propertyType",
   "availabilityStatus",
+  "categoryId",
+  "amenities",
   "minPrice",
   "maxPrice",
 ];
+
+export const propertySortableFields = [
+  "createdAt",
+  "rentAmount",
+  "area",
+  "bedrooms",
+  "title",
+] as const;
 
 export const PROPERTY_TYPES = [
   "APARTMENT",

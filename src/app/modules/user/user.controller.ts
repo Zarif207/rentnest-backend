@@ -3,15 +3,22 @@ import catchAsync from "../../utils/catchAsync.js";
 import sendResponse from "../../utils/sendResponse.js";
 import { UserServices } from "./user.service.js";
 import AppError from "../../utils/AppError.js";
+import pick from "../../utils/pick.js";
+import { paginationFields } from "../../helpers/paginationHelper.js";
+import { userFilterableFields } from "./user.constant.js";
 
 const getAllUsers = catchAsync(async (req, res) => {
-  const result = await UserServices.getAllUsers();
+  const result = await UserServices.getAllUsers(
+    pick(req.query, userFilterableFields),
+    pick(req.query, paginationFields),
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "Users retrieved successfully",
-    data: result,
+    meta: result.meta,
+    data: result.data,
   });
 });
 

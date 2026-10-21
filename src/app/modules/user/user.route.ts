@@ -9,6 +9,7 @@ const router = express.Router();
 router.get(
   "/",
   auth("ADMIN"),
+  validateRequest(UserValidation.userQueryValidationSchema),
   UserControllers.getAllUsers,
 );
 

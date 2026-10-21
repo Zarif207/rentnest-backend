@@ -2,6 +2,8 @@ import { Prisma, $Enums } from "../../../../generated/prisma/client.js";
 import prisma from "../../../lib/prisma.js";
 import httpStatus from "http-status";
 import AppError from "../../utils/AppError.js";
+import { paginationHelper } from "../../helpers/paginationHelper.js";
+import { TPaginationOptions } from "../../interfaces/pagination.js";
 import {
   TCreateProperty,
   TPropertyFilters,
@@ -42,8 +44,15 @@ const createProperty = async (payload: TCreateProperty, ownerId: string) => {
 
   return result;
 };
-const getAllProperties = async (filters: TPropertyFilters) => {
+const getAllProperties = async (
+  filters: TPropertyFilters,
+  options: TPaginationOptions,
+) => {
+  const { page, limit, skip, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(options);
+
   const {
+    ownerId,
     searchTerm,
     city,
     division,
@@ -56,6 +65,10 @@ const getAllProperties = async (filters: TPropertyFilters) => {
   } = filters;
 
   const andConditions: Prisma.PropertyWhereInput[] = [];
+
+  if (ownerId) {
+    andConditions.push({ ownerId });
+  }
 
   // Search
   if (searchTerm) {
@@ -138,11 +151,11 @@ const getAllProperties = async (filters: TPropertyFilters) => {
     });
   }
 
-  if (minPrice || maxPrice) {
+  if (minPrice !== undefined || maxPrice !== undefined) {
     andConditions.push({
       rentAmount: {
-        ...(minPrice ? { gte: Number(minPrice) } : {}),
-        ...(maxPrice ? { lte: Number(maxPrice) } : {}),
+        ...(minPrice !== undefined ? { gte: minPrice } : {}),
+        ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
       },
     });
   }
@@ -154,24 +167,38 @@ const getAllProperties = async (filters: TPropertyFilters) => {
         }
       : {};
 
-  const result = await prisma.property.findMany({
-    where: whereConditions,
-    include: {
-      owner: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
+  const [data, total] = await Promise.all([
+    prisma.property.findMany({
+      where: whereConditions,
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
         },
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+      orderBy: {
+        [sortBy]: sortOrder,
+      },
+      skip,
+      take: limit,
+    }),
+    prisma.property.count({ where: whereConditions }),
+  ]);
 
-  return result;
+  return {
+    meta: paginationHelper.buildMeta(page, limit, total),
+    data,
+  };
 };
 
 const getPropertyById = async (id: string) => {

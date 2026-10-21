@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { PROPERTY_TYPES, AVAILABILITY_STATUSES } from "./property.constant.js";
+import { paginationHelper } from "../../helpers/paginationHelper.js";
+import {
+  PROPERTY_TYPES,
+  AVAILABILITY_STATUSES,
+  propertySortableFields,
+} from "./property.constant.js";
 
 
 const createPropertyValidationSchema = z.object({
@@ -126,7 +131,18 @@ const propertyQueryValidationSchema = z.object({
       .number()
       .positive("Maximum price must be greater than 0")
       .optional(),
-  }),
+
+    ...paginationHelper.paginationQueryFields(propertySortableFields),
+  }).refine(
+    (query) =>
+      query.minPrice === undefined ||
+      query.maxPrice === undefined ||
+      query.minPrice <= query.maxPrice,
+    {
+      message: "Minimum price cannot be greater than maximum price",
+      path: ["minPrice"],
+    },
+  ),
 });
 
 export const PropertyValidations = {

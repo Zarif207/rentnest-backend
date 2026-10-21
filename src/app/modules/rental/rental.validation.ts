@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { BOOKING_STATUSES } from "./rental.constant.js";
+import { paginationHelper } from "../../helpers/paginationHelper.js";
+import { BOOKING_STATUSES, rentalSortableFields } from "./rental.constant.js";
 
 const createRentalRequestSchema = z.object({
   body: z.object({
@@ -39,9 +40,17 @@ const rentalStatusQuerySchema = z.object({
   }),
 });
 
+const adminRentalQuerySchema = z.object({
+  query: z.object({
+    status: z.enum(BOOKING_STATUSES).optional(),
+    ...paginationHelper.paginationQueryFields(rentalSortableFields),
+  }),
+});
+
 export const RentalValidation = {
   createRentalRequestSchema,
   rentalStatusQuerySchema,
+  adminRentalQuerySchema,
   rentalIdValidationSchema,
   updateRentalStatusSchema,
   completeRentalValidationSchema,

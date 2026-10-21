@@ -12,6 +12,12 @@ export const BOOKING_STATUSES = Object.values(BOOKING_STATUS) as [
   ...(keyof typeof BOOKING_STATUS)[],
 ];
 
+export const rentalSortableFields = [
+  "createdAt",
+  "moveInDate",
+  "totalRent",
+] as const;
+
 export const RENTAL_MESSAGES = {
   CREATED: "Rental request submitted successfully",
   RETRIEVED: "Rental request retrieved successfully",

@@ -22,6 +22,13 @@ router.get(
 // Landlord routes
 const landlordRouter = express.Router();
 
+landlordRouter.get(
+  "/",
+  auth("LANDLORD"),
+  validateRequest(PropertyValidations.propertyQueryValidationSchema),
+  PropertyControllers.getMyProperties,
+);
+
 landlordRouter.post(
   "/",
   auth("LANDLORD"),

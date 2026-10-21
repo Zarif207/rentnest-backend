@@ -2,6 +2,8 @@ import httpStatus from "http-status";
 
 import catchAsync from "../../utils/catchAsync.js";
 import sendResponse from "../../utils/sendResponse.js";
+import pick from "../../utils/pick.js";
+import { paginationFields } from "../../helpers/paginationHelper.js";
 import { RentalServices } from "./rental.service.js";
 import { TBookingStatus } from "./rental.interface.js";
 
@@ -79,13 +81,17 @@ const updateRentalRequestStatus = catchAsync(async (req, res) => {
 
 
 const getAllRentalRequestsForAdmin = catchAsync(async (req, res) => {
-  const result = await RentalServices.getAllRentalRequestsForAdmin();
+  const result = await RentalServices.getAllRentalRequestsForAdmin(
+    req.query.status as TBookingStatus | undefined,
+    pick(req.query, paginationFields),
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "All rental requests retrieved successfully",
-    data: result,
+    meta: result.meta,
+    data: result.data,
   });
 });
 

@@ -9,6 +9,13 @@ export type TPaginationReturn = {
   page: number;
   limit: number;
   skip: number;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
+  sortBy: string;
+  sortOrder: "asc" | "desc";
+};
+
+export type TMeta = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPage: number;
 };

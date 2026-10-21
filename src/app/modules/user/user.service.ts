@@ -2,6 +2,10 @@ import prisma from "../../../lib/prisma.js";
 import { Prisma } from "../../../../generated/prisma/client.js";
 import AppError from "../../utils/AppError.js";
 import httpStatus from "http-status";
+import { paginationHelper } from "../../helpers/paginationHelper.js";
+import { TPaginationOptions } from "../../interfaces/pagination.js";
+import { TUserFilters } from "./user.interface.js";
+import { userSearchableFields } from "./user.constant.js";
 
 const createUser = async (payload: Prisma.UserCreateInput) => {
   const result = await prisma.user.create({
@@ -11,8 +15,35 @@ const createUser = async (payload: Prisma.UserCreateInput) => {
   return result;
 };
 
-const getAllUsers = async () => {
-  const result = await prisma.user.findMany({
+const getAllUsers = async (
+  filters: TUserFilters,
+  options: TPaginationOptions,
+) => {
+  const { page, limit, skip, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(options);
+  const { searchTerm, role, userStatus } = filters;
+
+  const where: Prisma.UserWhereInput = {
+    ...(searchTerm
+      ? {
+          OR: userSearchableFields.map((field) => ({
+            [field]: { contains: searchTerm, mode: "insensitive" },
+          })),
+        }
+      : {}),
+    ...(role ? { role: role as Prisma.UserWhereInput["role"] } : {}),
+    ...(userStatus
+      ? { userStatus: userStatus as Prisma.UserWhereInput["userStatus"] }
+      : {}),
+  };
+
+  const data = await prisma.user.findMany({
+    where,
+    skip,
+    take: limit,
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
     select: {
       id: true,
       name: true,
@@ -25,7 +56,12 @@ const getAllUsers = async () => {
     },
   });
 
-  return result;
+  const total = await prisma.user.count({ where });
+
+  return {
+    meta: paginationHelper.buildMeta(page, limit, total),
+    data,
+  };
 };
 
 

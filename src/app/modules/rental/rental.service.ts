@@ -2,6 +2,8 @@ import httpStatus from "http-status";
 
 import prisma from "../../../lib/prisma.js";
 import AppError from "../../utils/AppError.js";
+import { paginationHelper } from "../../helpers/paginationHelper.js";
+import { TPaginationOptions } from "../../interfaces/pagination.js";
 import { ICreateRentalRequest, TBookingStatus } from "./rental.interface.js";
 
 const createRentalRequest = async (
@@ -142,11 +144,22 @@ const getLandlordRentalRequests = async (
   return rentalRequests;
 };
 
-const getAllRentalRequestsForAdmin = async () => {
+const getAllRentalRequestsForAdmin = async (
+  status: TBookingStatus | undefined,
+  options: TPaginationOptions,
+) => {
+  const { page, limit, skip, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(options);
+
+  const where = {
+    isDeleted: false,
+    ...(status ? { bookingStatus: status } : {}),
+  };
+
   const rentalRequests = await prisma.booking.findMany({
-    where: {
-      isDeleted: false,
-    },
+    where,
+    skip,
+    take: limit,
     include: {
       property: {
         include: {
@@ -171,11 +184,16 @@ const getAllRentalRequestsForAdmin = async () => {
       payment: true,
     },
     orderBy: {
-      createdAt: "desc",
+      [sortBy]: sortOrder,
     },
   });
 
-  return rentalRequests;
+  const total = await prisma.booking.count({ where });
+
+  return {
+    meta: paginationHelper.buildMeta(page, limit, total),
+    data: rentalRequests,
+  };
 };
 
 const updateRentalRequestStatus = async (

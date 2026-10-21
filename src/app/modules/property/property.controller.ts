@@ -2,28 +2,54 @@ import httpStatus from "http-status";
 
 import catchAsync from "../../utils/catchAsync.js";
 import sendResponse from "../../utils/sendResponse.js";
+import pick from "../../utils/pick.js";
+import { paginationFields } from "../../helpers/paginationHelper.js";
 
 import { PropertyServices } from "./property.service.js";
+import { propertyFilterableFields } from "./property.constant.js";
 
 const getAllProperties = catchAsync(async (req, res) => {
-  const result = await PropertyServices.getAllProperties(req.query);
+  const filters = pick(req.query, propertyFilterableFields);
+  const options = pick(req.query, paginationFields);
+  const result = await PropertyServices.getAllProperties(filters, options);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "Properties retrieved successfully",
-    data: result,
+    meta: result.meta,
+    data: result.data,
   });
 });
 
 const getAllPropertiesForAdmin = catchAsync(async (req, res) => {
-  const result = await PropertyServices.getAllProperties(req.query);
+  const filters = pick(req.query, propertyFilterableFields);
+  const options = pick(req.query, paginationFields);
+  const result = await PropertyServices.getAllProperties(filters, options);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "All properties retrieved successfully",
-    data: result,
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
+const getMyProperties = catchAsync(async (req, res) => {
+  const filters = {
+    ...pick(req.query, propertyFilterableFields),
+    ownerId: req.user.userId,
+  };
+  const options = pick(req.query, paginationFields);
+  const result = await PropertyServices.getAllProperties(filters, options);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Your properties retrieved successfully",
+    meta: result.meta,
+    data: result.data,
   });
 });
 
@@ -86,6 +112,7 @@ const deleteProperty = catchAsync(async (req, res) => {
 export const PropertyControllers = {
   getAllProperties,
   getAllPropertiesForAdmin,
+  getMyProperties,
   createProperty,
   getPropertyById,
   updateProperty,

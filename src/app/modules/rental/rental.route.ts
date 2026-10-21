@@ -37,6 +37,7 @@ const adminRouter = express.Router();
 adminRouter.get(
   "/",
   auth("ADMIN"),
+  validateRequest(RentalValidation.adminRentalQuerySchema),
   RentalControllers.getAllRentalRequestsForAdmin,
 );
 

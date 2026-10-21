@@ -6,8 +6,9 @@ export type TPropertyFilters = {
   availabilityStatus?: string;
   categoryId?: string;
   amenities?: string;
-  minPrice?: string;
-  maxPrice?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  ownerId?: string;
 };
 
 export type TCreateProperty = {
