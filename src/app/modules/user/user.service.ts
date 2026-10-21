@@ -4,7 +4,7 @@ import AppError from "../../utils/AppError.js";
 import httpStatus from "http-status";
 import { paginationHelper } from "../../helpers/paginationHelper.js";
 import { TPaginationOptions } from "../../interfaces/pagination.js";
-import { TUserFilters } from "./user.interface.js";
+import { TUpdateMyProfile, TUserFilters } from "./user.interface.js";
 import { userSearchableFields } from "./user.constant.js";
 
 const createUser = async (payload: Prisma.UserCreateInput) => {
@@ -102,8 +102,68 @@ const updateUserStatus = async (
   return result;
 };
 
+// Everything except the password hash.
+const profileSelect = {
+  id: true,
+  name: true,
+  email: true,
+  phone: true,
+  role: true,
+  userStatus: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+const getMyProfile = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: profileSelect,
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  return user;
+};
+
+const updateMyProfile = async (userId: string, payload: TUpdateMyProfile) => {
+  if (payload.email) {
+    const emailTaken = await prisma.user.findFirst({
+      where: {
+        email: payload.email,
+        NOT: {
+          id: userId,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (emailTaken) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        "This email is already used by another account",
+      );
+    }
+  }
+
+  return prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: payload,
+    select: profileSelect,
+  });
+};
+
 export const UserServices = {
   createUser,
   getAllUsers,
   updateUserStatus,
+  getMyProfile,
+  updateMyProfile,
 };

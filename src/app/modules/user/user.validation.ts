@@ -11,11 +11,21 @@ const userQueryValidationSchema = z.object({
   }),
 });
 
-const updateUserValidationSchema = z.object({
-  body: z.object({
-    name: z.string().optional(),
-    phone: z.string().optional(),
-  }),
+// strictObject rejects role, userStatus, password and any other field.
+const updateMyProfileValidationSchema = z.object({
+  body: z
+    .strictObject({
+      name: z.string().trim().min(1, "Name cannot be empty").optional(),
+      email: z.email("Invalid email address").optional(),
+      phone: z
+        .string()
+        .trim()
+        .regex(/^\+?[0-9]{7,15}$/, "Invalid phone number")
+        .optional(),
+    })
+    .refine((body) => Object.keys(body).length > 0, {
+      message: "Provide at least one field to update (name, email or phone)",
+    }),
 });
 
 const updateUserStatusValidationSchema = z.object({
@@ -29,6 +39,6 @@ const updateUserStatusValidationSchema = z.object({
 
 export const UserValidation = {
   userQueryValidationSchema,
-  updateUserValidationSchema,
+  updateMyProfileValidationSchema,
   updateUserStatusValidationSchema,
 };

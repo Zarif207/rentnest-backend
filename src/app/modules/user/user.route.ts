@@ -20,4 +20,15 @@ router.patch(
   UserControllers.updateUserStatus,
 );
 
+// Profile routes for any signed-in user (mounted at /api/users)
+const profileRouter = express.Router();
+
+profileRouter.patch(
+  "/me",
+  auth("TENANT", "LANDLORD", "ADMIN"),
+  validateRequest(UserValidation.updateMyProfileValidationSchema),
+  UserControllers.updateMyProfile,
+);
+
 export const UserRoutes = router;
+export const ProfileRoutes = profileRouter;
