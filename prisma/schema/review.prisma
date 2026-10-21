@@ -1,5 +1,7 @@
 model Review {
   id         String   @id @default(uuid())
+  bookingId  String   @unique
+  booking    Booking  @relation(fields: [bookingId], references: [id])
   propertyId String
   property   Property @relation(fields: [propertyId], references: [id])
   userId     String
@@ -8,4 +10,6 @@ model Review {
   comment    String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@index([propertyId])
 }

@@ -1,31 +1,36 @@
 model Property {
-  id                 String               @id @default(uuid())
-  title              String
-  description        String
-  address            String
-  city               String
-  division           String
+  id          String @id @default(uuid())
+  title       String
+  description String
+  address     String
+  city        String
+  division    String
 
-  rentAmount         Decimal
-  bedrooms           Int
-  bathrooms          Int
-  area               Int
+  rentAmount Decimal
+  bedrooms   Int
+  bathrooms  Int
+  area       Int
 
   propertyType       PropertyType
   availabilityStatus AvailabilityStatus @default(AVAILABLE)
 
-  categoryId         String?
-  category           Category? @relation(fields: [categoryId], references: [id])
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
 
-  amenities          String[]
-  images             Json
+  amenities String[]
+  images    Json
 
-  ownerId            String
-  owner              User @relation(fields: [ownerId], references: [id])
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id])
 
-  bookings           Booking[]
-  reviews            Review[]
+  bookings Booking[]
+  reviews  Review[]
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([city])
+  @@index([propertyType])
+  @@index([rentAmount])
+  @@index([ownerId])
 }

@@ -1,6 +1,9 @@
 export const PAYMENT_METHOD = {
+  CARD: "CARD",
+} as const;
+
+export const PAYMENT_PROVIDER = {
   STRIPE: "STRIPE",
-  CASH: "CASH",
 } as const;
 
 export const PAYMENT_STATUS = {

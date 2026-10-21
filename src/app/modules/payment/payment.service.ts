@@ -30,6 +30,8 @@ const createStripeSession = (booking: {
 
   return stripe.checkout.sessions.create({
     mode: "payment",
+    // Card only, matching the CARD payment method stored on the Payment row.
+    payment_method_types: ["card"],
     line_items: [
       {
         price_data: {
@@ -199,7 +201,8 @@ const createStripeCheckoutSession = async (
       bookingId: booking.id,
       transactionId: session.id,
       amount,
-      paymentMethod: "STRIPE",
+      paymentMethod: "CARD",
+      provider: "STRIPE",
       paymentStatus: "PENDING",
     },
   });

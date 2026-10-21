@@ -31,8 +31,11 @@ enum BookingStatus {
 }
 
 enum PaymentMethod {
+  CARD
+}
+
+enum PaymentProvider {
   STRIPE
-  CASH
 }
 
 enum PaymentStatus {
