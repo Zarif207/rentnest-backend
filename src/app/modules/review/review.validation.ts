@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paginationHelper } from "../../helpers/paginationHelper.js";
 
 const createReviewSchema = z.object({
   body: z.object({
@@ -21,7 +22,15 @@ const propertyReviewsValidationSchema = z.object({
   }),
 });
 
+const landlordReviewsQuerySchema = z.object({
+  query: z.object({
+    propertyId: z.string().uuid("Invalid property ID").optional(),
+    ...paginationHelper.paginationQueryFields(["createdAt", "rating"] as const),
+  }),
+});
+
 export const ReviewValidation = {
   createReviewSchema,
   propertyReviewsValidationSchema,
+  landlordReviewsQuerySchema,
 };

@@ -4,6 +4,8 @@ import auth from "../../middlewares/auth.js";
 import validateRequest from "../../middlewares/validateRequest.js";
 import { RentalControllers } from "../rental/rental.controller.js";
 import { RentalValidation } from "../rental/rental.validation.js";
+import { ReviewControllers } from "../review/review.controller.js";
+import { ReviewValidation } from "../review/review.validation.js";
 
 const router = express.Router();
 
@@ -28,5 +30,11 @@ router.patch(
   RentalControllers.completeRental,
 );
 
+router.get(
+  "/reviews",
+  auth("LANDLORD"),
+  validateRequest(ReviewValidation.landlordReviewsQuerySchema),
+  ReviewControllers.getLandlordReviews,
+);
 
 export const LandlordRoutes = router;

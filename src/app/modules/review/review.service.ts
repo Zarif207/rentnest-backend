@@ -2,6 +2,8 @@ import httpStatus from "http-status";
 
 import prisma from "../../../lib/prisma.js";
 import AppError from "../../utils/AppError.js";
+import { paginationHelper } from "../../helpers/paginationHelper.js";
+import { TPaginationOptions } from "../../interfaces/pagination.js";
 import { ICreateReview } from "./review.interface.js";
 
 const createReview = async (userId: string, payload: ICreateReview) => {
@@ -99,7 +101,55 @@ const getPropertyReviews = async (propertyId: string) => {
   return reviews;
 };
 
+const getLandlordReviews = async (
+  landlordId: string,
+  propertyId: string | undefined,
+  options: TPaginationOptions,
+) => {
+  const { page, limit, skip, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(options);
+
+  const where = {
+    property: {
+      ownerId: landlordId,
+    },
+    ...(propertyId ? { propertyId } : {}),
+  };
+
+  const [data, total] = await Promise.all([
+    prisma.review.findMany({
+      where,
+      include: {
+        property: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        [sortBy]: sortOrder,
+      },
+      skip,
+      take: limit,
+    }),
+    prisma.review.count({ where }),
+  ]);
+
+  return {
+    meta: paginationHelper.buildMeta(page, limit, total),
+    data,
+  };
+};
+
 export const ReviewServices = {
   createReview,
   getPropertyReviews,
+  getLandlordReviews,
 };
