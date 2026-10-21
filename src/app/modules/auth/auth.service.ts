@@ -18,7 +18,10 @@ const registerUser = async (payload: TRegisterUser) => {
     throw new AppError(httpStatus.CONFLICT, "User already exists");
   }
 
-  const hashedPassword = await bcrypt.hash(payload.password, 10);
+  const hashedPassword = await bcrypt.hash(
+    payload.password,
+    config.bcrypt_salt_rounds,
+  );
 
   const result = await UserServices.createUser({
     ...payload,
@@ -37,21 +40,21 @@ const loginUser = async (payload: TLoginUser) => {
     },
   });
 
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  // Same response for an unknown email and a wrong password, so login
+  // doesn't reveal which emails are registered.
+  const isPasswordMatched =
+    !!user && (await bcrypt.compare(payload.password, user.password));
+
+  if (!user || !isPasswordMatched) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid email or password");
   }
 
+  // Checked only after the password, so it doesn't reveal accounts either.
   if (user.userStatus === "BLOCKED") {
-    throw new AppError(httpStatus.FORBIDDEN, "User is blocked");
-  }
-
-  const isPasswordMatched = await bcrypt.compare(
-    payload.password,
-    user.password,
-  );
-
-  if (!isPasswordMatched) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid credentials");
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Your account has been blocked. Please contact support.",
+    );
   }
 
   const jwtPayload = {

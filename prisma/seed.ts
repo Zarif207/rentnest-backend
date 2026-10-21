@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import prisma from "../src/lib/prisma.js";
+import config from "../src/config/index.js";
 import type {
   PropertyType,
   UserRole,
@@ -8,7 +9,7 @@ import type {
 // Idempotent: safe to run more than once. The admin password is reset on
 // every run so the printed credentials always work.
 
-const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
+const SALT_ROUNDS = config.bcrypt_salt_rounds;
 
 const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || "admin@rentnest.com";
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || "Admin@123";

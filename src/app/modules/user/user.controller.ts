@@ -29,7 +29,11 @@ const updateUserStatus = catchAsync(async (req, res) => {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid user ID");
   }
 
-  const result = await UserServices.updateUserStatus(id, req.body);
+  const result = await UserServices.updateUserStatus(
+    id,
+    req.user.userId,
+    req.body,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

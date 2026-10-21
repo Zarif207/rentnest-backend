@@ -67,7 +67,7 @@ const getAllUsers = async (
 
 const updateUserStatus = async (
   id: string,
-
+  adminId: string,
   payload: { userStatus: "ACTIVE" | "BLOCKED" },
 ) => {
   const user = await prisma.user.findUnique({
@@ -78,6 +78,17 @@ const updateUserStatus = async (
 
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (payload.userStatus === "BLOCKED" && id === adminId) {
+    throw new AppError(httpStatus.FORBIDDEN, "You cannot block yourself");
+  }
+
+  if (payload.userStatus === "BLOCKED" && user.role === "ADMIN") {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Admin accounts cannot be blocked",
+    );
   }
 
   const result = await prisma.user.update({
