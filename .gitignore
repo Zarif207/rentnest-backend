@@ -2,3 +2,8 @@ node_modules/
 dist/
 .env
 /generated/prisma
+
+# AI coding-tool skill folders (kept locally, not part of the project)
+.agents/
+.claude/skills/
+.windsurf/skills/
