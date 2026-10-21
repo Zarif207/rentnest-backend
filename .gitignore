@@ -7,3 +7,4 @@ dist/
 .agents/
 .claude/skills/
 .windsurf/skills/
+skills-lock.json
