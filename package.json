@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc",
-    "start": "tsx src/server.ts"
+    "start": "tsx src/server.ts",
+    "seed": "prisma db seed"
   },
   "keywords": [],
   "author": "",
