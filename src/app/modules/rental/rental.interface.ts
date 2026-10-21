@@ -1,3 +1,7 @@
+import { BOOKING_STATUS } from "./rental.constant.js";
+
+export type TBookingStatus = keyof typeof BOOKING_STATUS;
+
 export interface ICreateRentalRequest {
   propertyId: string;
   moveInDate: string;

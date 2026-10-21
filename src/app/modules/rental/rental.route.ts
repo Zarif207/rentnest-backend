@@ -14,7 +14,12 @@ router.post(
   RentalControllers.createRentalRequest,
 );
 
-router.get("/", auth("TENANT"), RentalControllers.getMyRentalRequests);
+router.get(
+  "/",
+  auth("TENANT"),
+  validateRequest(RentalValidation.rentalStatusQuerySchema),
+  RentalControllers.getMyRentalRequests,
+);
 
 router.get(
   "/:id",

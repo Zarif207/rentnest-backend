@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import catchAsync from "../../utils/catchAsync.js";
 import sendResponse from "../../utils/sendResponse.js";
 import { RentalServices } from "./rental.service.js";
+import { TBookingStatus } from "./rental.interface.js";
 
 const createRentalRequest = catchAsync(async (req, res) => {
   const result = await RentalServices.createRentalRequest(
@@ -19,7 +20,10 @@ const createRentalRequest = catchAsync(async (req, res) => {
 });
 
 const getMyRentalRequests = catchAsync(async (req, res) => {
-  const result = await RentalServices.getMyRentalRequests(req.user.userId);
+  const result = await RentalServices.getMyRentalRequests(
+    req.user.userId,
+    req.query.status as TBookingStatus | undefined,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -46,6 +50,7 @@ const getRentalRequestById = catchAsync(async (req, res) => {
 const getLandlordRentalRequests = catchAsync(async (req, res) => {
   const result = await RentalServices.getLandlordRentalRequests(
     req.user.userId,
+    req.query.status as TBookingStatus | undefined,
   );
 
   sendResponse(res, {

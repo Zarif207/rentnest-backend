@@ -10,6 +10,7 @@ const router = express.Router();
 router.get(
   "/requests",
   auth("LANDLORD"),
+  validateRequest(RentalValidation.rentalStatusQuerySchema),
   RentalControllers.getLandlordRentalRequests,
 );
 

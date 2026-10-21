@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BOOKING_STATUSES } from "./rental.constant.js";
 
 const createRentalRequestSchema = z.object({
   body: z.object({
@@ -32,8 +33,15 @@ const completeRentalValidationSchema = z.object({
   }),
 });
 
+const rentalStatusQuerySchema = z.object({
+  query: z.object({
+    status: z.enum(BOOKING_STATUSES).optional(),
+  }),
+});
+
 export const RentalValidation = {
   createRentalRequestSchema,
+  rentalStatusQuerySchema,
   rentalIdValidationSchema,
   updateRentalStatusSchema,
   completeRentalValidationSchema,

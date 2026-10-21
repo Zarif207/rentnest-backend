@@ -2,7 +2,7 @@ import httpStatus from "http-status";
 
 import prisma from "../../../lib/prisma.js";
 import AppError from "../../utils/AppError.js";
-import { ICreateRentalRequest } from "./rental.interface.js";
+import { ICreateRentalRequest, TBookingStatus } from "./rental.interface.js";
 
 const createRentalRequest = async (
   tenantId: string,
@@ -61,11 +61,15 @@ const createRentalRequest = async (
   return rentalRequest;
 };
 
-const getMyRentalRequests = async (tenantId: string) => {
+const getMyRentalRequests = async (
+  tenantId: string,
+  status?: TBookingStatus,
+) => {
   const rentalRequests = await prisma.booking.findMany({
     where: {
       tenantId,
       isDeleted: false,
+      ...(status ? { bookingStatus: status } : {}),
     },
     include: {
       property: true,
@@ -107,10 +111,14 @@ const getRentalRequestById = async (rentalId: string, userId: string) => {
   return rentalRequest;
 };
 
-const getLandlordRentalRequests = async (landlordId: string) => {
+const getLandlordRentalRequests = async (
+  landlordId: string,
+  status?: TBookingStatus,
+) => {
   const rentalRequests = await prisma.booking.findMany({
     where: {
       isDeleted: false,
+      ...(status ? { bookingStatus: status } : {}),
       property: {
         ownerId: landlordId,
       },
@@ -289,37 +297,52 @@ const completeRental = async (rentalId: string, landlordId: string) => {
     );
   }
 
-  const rentalEndDate = new Date(rentalRequest.moveInDate);
-  rentalEndDate.setMonth(
-    rentalEndDate.getMonth() + rentalRequest.leaseMonths,
-  );
+  // A landlord may complete an active rental at any time (e.g. early
+  // move-out). The property becomes available again in the same transaction.
+  const completedRental = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.booking.updateMany({
+      where: {
+        id: rentalId,
+        bookingStatus: "ACTIVE",
+      },
+      data: {
+        bookingStatus: "COMPLETED",
+      },
+    });
 
-  if (new Date() < rentalEndDate) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Rental cannot be completed before the lease period ends",
-    );
-  }
+    if (count === 0) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        "This rental has already been completed",
+      );
+    }
 
-  const completedRental = await prisma.booking.update({
-    where: {
-      id: rentalId,
-    },
-    data: {
-      bookingStatus: "COMPLETED",
-    },
-    include: {
-      property: true,
-      payment: true,
-      tenant: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
+    await tx.property.update({
+      where: {
+        id: rentalRequest.propertyId,
+      },
+      data: {
+        availabilityStatus: "AVAILABLE",
+      },
+    });
+
+    return tx.booking.findUniqueOrThrow({
+      where: {
+        id: rentalId,
+      },
+      include: {
+        property: true,
+        payment: true,
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
         },
       },
-    },
+    });
   });
 
   return completedRental;
