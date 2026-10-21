@@ -7,7 +7,3 @@ export interface ICreateRentalRequest {
   moveInDate: string;
   leaseMonths: number;
 }
-
-export interface IUpdateRentalRequestStatus {
-  bookingStatus: "APPROVED" | "REJECTED";
-}

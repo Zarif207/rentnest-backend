@@ -4,6 +4,7 @@ import httpStatus from "http-status";
 import AppError from "../../utils/AppError.js";
 import { paginationHelper } from "../../helpers/paginationHelper.js";
 import { TPaginationOptions } from "../../interfaces/pagination.js";
+import { propertySearchableFields } from "./property.constant.js";
 import {
   TCreateProperty,
   TPropertyFilters,
@@ -73,32 +74,12 @@ const getAllProperties = async (
   // Search
   if (searchTerm) {
     andConditions.push({
-      OR: [
-        {
-          title: {
-            contains: searchTerm,
-            mode: "insensitive",
-          },
+      OR: propertySearchableFields.map((field) => ({
+        [field]: {
+          contains: searchTerm,
+          mode: "insensitive",
         },
-        {
-          description: {
-            contains: searchTerm,
-            mode: "insensitive",
-          },
-        },
-        {
-          city: {
-            contains: searchTerm,
-            mode: "insensitive",
-          },
-        },
-        {
-          address: {
-            contains: searchTerm,
-            mode: "insensitive",
-          },
-        },
-      ],
+      })),
     });
   }
 
