@@ -188,6 +188,12 @@ const getPropertyById = async (id: string) => {
       id,
     },
     include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       owner: {
         select: {
           id: true,
