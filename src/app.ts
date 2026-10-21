@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import router from "./app/routes/index.js";
 import { PaymentControllers } from "./app/modules/payment/payment.controller.js";
 import globalErrorHandler from "./app/middlewares/globalErrorHandler.js";
+import notFound from "./app/middlewares/notFound.js";
 
 const app: Application = express();
 
@@ -27,6 +28,8 @@ app.get("/", (req: Request, res: Response) => {
     message: "RentNest Backend API is running 🚀",
   });
 });
+
+app.use(notFound);
 
 app.use(globalErrorHandler);
 

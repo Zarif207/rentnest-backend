@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
-import { ZodSchema } from "zod";
+import { ZodType } from "zod";
 
-const validateRequest = (schema: ZodSchema) => {
+const validateRequest = (schema: ZodType) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse({
       body: req.body,
@@ -9,22 +9,34 @@ const validateRequest = (schema: ZodSchema) => {
       query: req.query,
     });
 
+    // Let the global error handler format Zod errors like every other error.
     if (!result.success) {
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        errorDetails: result.error.issues,
-      });
+      return next(result.error);
     }
 
     const validatedData = result.data as {
-      body: unknown;
-      params: unknown;
-      query: unknown;
+      body?: unknown;
+      params?: unknown;
+      query?: unknown;
     };
 
-    req.body = validatedData.body;
-    req.params = validatedData.params as Request["params"];
+    if (validatedData.body !== undefined) {
+      req.body = validatedData.body;
+    }
+
+    if (validatedData.params !== undefined) {
+      req.params = validatedData.params as Request["params"];
+    }
+
+    // req.query is a getter in Express 5, so redefine it to expose coerced values.
+    if (validatedData.query !== undefined) {
+      Object.defineProperty(req, "query", {
+        value: validatedData.query,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+    }
 
     next();
   };
