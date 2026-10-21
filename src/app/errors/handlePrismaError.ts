@@ -43,10 +43,11 @@ const handlePrismaError = (
         errorDetails: [{ path: "id", message: "Malformed identifier" }],
       };
 
+    // Any other code (e.g. P2021 missing table) is a server-side problem.
     default:
       return {
-        statusCode: httpStatus.BAD_REQUEST,
-        message: "Database request failed",
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        message: "Database error",
         errorDetails: [{ path: "", message: `Prisma error ${err.code}` }],
       };
   }
