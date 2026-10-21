@@ -9,18 +9,29 @@ const router = express.Router();
 
 router.get("/", auth("TENANT"), PaymentControllers.getMyPayments);
 
+const createPaymentHandlers = [
+  auth("TENANT"),
+  validateRequest(PaymentValidation.createStripeCheckoutSessionSchema),
+  PaymentControllers.createStripeCheckoutSession,
+];
+
+router.post("/create", ...createPaymentHandlers);
+
+// Alias kept for backwards compatibility.
+router.post("/checkout", ...createPaymentHandlers);
+
+router.post(
+  "/confirm",
+  auth("TENANT"),
+  validateRequest(PaymentValidation.confirmPaymentSchema),
+  PaymentControllers.confirmPayment,
+);
+
 router.get(
   "/:id",
   auth("TENANT"),
   validateRequest(PaymentValidation.paymentIdValidationSchema),
   PaymentControllers.getPaymentById,
-);
-
-router.post(
-  "/checkout",
-  auth("TENANT"),
-  validateRequest(PaymentValidation.createStripeCheckoutSessionSchema),
-  PaymentControllers.createStripeCheckoutSession,
 );
 
 export const PaymentRoutes = router;

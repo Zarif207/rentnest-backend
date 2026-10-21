@@ -15,4 +15,9 @@ export default {
 
   stripe_secret: process.env.STRIPE_SECRET as string,
   stripe_webhook_secret: process.env.STRIPE_WEBHOOK_SECRET as string,
+
+  client_success_url:
+    process.env.CLIENT_SUCCESS_URL || "http://localhost:3000/payment/success",
+  client_cancel_url:
+    process.env.CLIENT_CANCEL_URL || "http://localhost:3000/payment/cancel",
 };

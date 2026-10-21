@@ -38,9 +38,23 @@ const createStripeCheckoutSession = catchAsync(async (req, res) => {
   );
 
   sendResponse(res, {
-    statusCode: httpStatus.OK,
+    statusCode: httpStatus.CREATED,
     success: true,
     message: "Stripe checkout session created successfully",
+    data: result,
+  });
+});
+
+const confirmPayment = catchAsync(async (req, res) => {
+  const result = await PaymentServices.confirmPayment(
+    req.user.userId,
+    req.body.sessionId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Payment confirmed successfully",
     data: result,
   });
 });
@@ -57,5 +71,6 @@ export const PaymentControllers = {
   getMyPayments,
   getPaymentById,
   createStripeCheckoutSession,
+  confirmPayment,
   handleStripeWebhook,
 };

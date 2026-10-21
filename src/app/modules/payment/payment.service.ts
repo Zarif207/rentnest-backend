@@ -1,9 +1,126 @@
 import httpStatus from "http-status";
+import Stripe from "stripe";
 import prisma from "../../../lib/prisma.js";
 import AppError from "../../utils/AppError.js";
 import stripe from "../../../config/stripe.js";
-import Stripe from "stripe";
 import config from "../../../config/index.js";
+
+const paymentInclude = {
+  booking: {
+    include: {
+      property: true,
+    },
+  },
+} as const;
+
+// Stripe replaces {CHECKOUT_SESSION_ID} in the success URL with the session id.
+const buildSuccessUrl = () => {
+  const url = config.client_success_url;
+  if (url.includes("{CHECKOUT_SESSION_ID}")) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}`;
+};
+
+const createStripeSession = (booking: {
+  id: string;
+  tenantId: string;
+  totalRent: unknown;
+  property: { title: string };
+}) => {
+  const amount = Number(booking.totalRent);
+
+  return stripe.checkout.sessions.create({
+    mode: "payment",
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: `RentNest - ${booking.property.title}`,
+          },
+          unit_amount: Math.round(amount * 100),
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      bookingId: booking.id,
+      tenantId: booking.tenantId,
+    },
+    success_url: buildSuccessUrl(),
+    cancel_url: config.client_cancel_url,
+  });
+};
+
+/**
+ * Marks a paid Checkout Session as PAID and activates the rental.
+ * Shared by the webhook and POST /payments/confirm. The conditional
+ * updateMany calls make it idempotent: whichever caller runs first does the
+ * work, and any later or concurrent call updates zero rows and changes nothing.
+ */
+const markSessionPaid = async (session: Stripe.Checkout.Session) => {
+  if (session.payment_status !== "paid") {
+    return { processed: false };
+  }
+
+  const payment = await prisma.payment.findUnique({
+    where: { transactionId: session.id },
+    include: { booking: true },
+  });
+
+  // Not one of our sessions (or superseded by a retry): nothing to update.
+  if (!payment || payment.bookingId !== session.metadata?.bookingId) {
+    return { processed: false };
+  }
+
+  const processed = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.payment.updateMany({
+      where: {
+        id: payment.id,
+        transactionId: session.id,
+        paymentStatus: { not: "PAID" },
+      },
+      data: {
+        paymentStatus: "PAID",
+        paymentDate: new Date(),
+      },
+    });
+
+    if (count === 0) {
+      return false;
+    }
+
+    const activated = await tx.booking.updateMany({
+      where: { id: payment.bookingId, bookingStatus: "APPROVED" },
+      data: { bookingStatus: "ACTIVE" },
+    });
+
+    if (activated.count > 0) {
+      await tx.property.update({
+        where: { id: payment.booking.propertyId },
+        data: { availabilityStatus: "RENTED" },
+      });
+    }
+
+    return true;
+  });
+
+  return { processed };
+};
+
+// Expired or failed sessions mark a still-pending payment FAILED so the tenant can retry.
+const markSessionFailed = async (session: Stripe.Checkout.Session) => {
+  const { count } = await prisma.payment.updateMany({
+    where: {
+      transactionId: session.id,
+      paymentStatus: "PENDING",
+    },
+    data: {
+      paymentStatus: "FAILED",
+    },
+  });
+
+  return { processed: count > 0 };
+};
 
 const createStripeCheckoutSession = async (
   tenantId: string,
@@ -30,6 +147,13 @@ const createStripeCheckoutSession = async (
     );
   }
 
+  if (booking.payment?.paymentStatus === "PAID") {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      "This rental has already been paid",
+    );
+  }
+
   if (booking.bookingStatus !== "APPROVED") {
     throw new AppError(
       httpStatus.BAD_REQUEST,
@@ -37,44 +161,41 @@ const createStripeCheckoutSession = async (
     );
   }
 
+  // Retry: reuse a still-open session, otherwise replace it with a new one.
   if (booking.payment) {
-    throw new AppError(
-      httpStatus.CONFLICT,
-      "Payment has already been created for this rental",
+    const existing = await stripe.checkout.sessions.retrieve(
+      booking.payment.transactionId,
     );
+
+    if (existing.payment_status === "paid") {
+      await markSessionPaid(existing);
+      throw new AppError(
+        httpStatus.CONFLICT,
+        "This rental has already been paid",
+      );
+    }
+
+    if (existing.status === "open" && booking.payment.paymentStatus === "PENDING") {
+      return {
+        sessionId: existing.id,
+        checkoutUrl: existing.url,
+        paymentId: booking.payment.id,
+      };
+    }
   }
 
+  const session = await createStripeSession(booking);
   const amount = Number(booking.totalRent);
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: `RentNest - ${booking.property.title}`,
-          },
-          unit_amount: Math.round(amount * 100),
-        },
-        quantity: 1,
-      },
-    ],
-
-    metadata: {
-      bookingId: booking.id,
-      tenantId: booking.tenantId,
+  const payment = await prisma.payment.upsert({
+    where: { bookingId: booking.id },
+    update: {
+      transactionId: session.id,
+      amount,
+      paymentStatus: "PENDING",
+      paymentDate: null,
     },
-
-    success_url:
-      "http://localhost:3000/payment/success?session_id={CHECKOUT_SESSION_ID}",
-
-    cancel_url: "http://localhost:3000/payment/cancel",
-  });
-
-  const payment = await prisma.payment.create({
-    data: {
+    create: {
       bookingId: booking.id,
       transactionId: session.id,
       amount,
@@ -88,6 +209,51 @@ const createStripeCheckoutSession = async (
     checkoutUrl: session.url,
     paymentId: payment.id,
   };
+};
+
+const confirmPayment = async (tenantId: string, sessionId: string) => {
+  const payment = await prisma.payment.findUnique({
+    where: { transactionId: sessionId },
+    include: { booking: true },
+  });
+
+  if (!payment) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "No payment found for this checkout session",
+    );
+  }
+
+  if (payment.booking.tenantId !== tenantId) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "You are not authorized to confirm this payment",
+    );
+  }
+
+  if (payment.paymentStatus !== "PAID") {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status === "paid") {
+      await markSessionPaid(session);
+    } else if (session.status === "expired") {
+      await markSessionFailed(session);
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "This checkout session has expired; create a new payment to try again",
+      );
+    } else {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Payment has not been completed yet",
+      );
+    }
+  }
+
+  return prisma.payment.findUniqueOrThrow({
+    where: { id: payment.id },
+    include: paymentInclude,
+  });
 };
 
 const handleStripeWebhook = async (payload: Buffer, signature: string) => {
@@ -106,101 +272,18 @@ const handleStripeWebhook = async (payload: Buffer, signature: string) => {
     );
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
+  switch (event.type) {
+    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded":
+      return markSessionPaid(event.data.object);
 
-    if (session.payment_status !== "paid") {
-      return null;
-    }
+    case "checkout.session.expired":
+    case "checkout.session.async_payment_failed":
+      return markSessionFailed(event.data.object);
 
-    const bookingId = session.metadata?.bookingId;
-
-    if (!bookingId) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "Booking ID missing from Stripe session",
-      );
-    }
-
-    const payment = await prisma.payment.findUnique({
-      where: { bookingId },
-      include: { booking: true },
-    });
-
-    if (!payment) {
-      throw new AppError(httpStatus.NOT_FOUND, "Payment record not found");
-    }
-
-    if (payment.transactionId !== session.id) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "Stripe session does not match payment record",
-      );
-    }
-
-    if (payment.paymentStatus === "PAID") {
-      if (payment.booking.bookingStatus === "APPROVED") {
-        await prisma.$transaction(async (tx) => {
-          await tx.booking.update({
-            where: {
-              id: payment.bookingId,
-            },
-            data: {
-              bookingStatus: "ACTIVE",
-            },
-          });
-
-          await tx.property.update({
-            where: {
-              id: payment.booking.propertyId,
-            },
-            data: {
-              availabilityStatus: "RENTED",
-            },
-          });
-        });
-      }
-
-      return payment;
-    }
-
-    if (payment.booking.bookingStatus !== "APPROVED") {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "Only approved rentals can be activated after payment",
-      );
-    }
-
-    const confirmedPayment = await prisma.$transaction(async (tx) => {
-      const updatedPayment = await tx.payment.update({
-        where: { id: payment.id },
-        data: {
-          paymentStatus: "PAID",
-          paymentDate: new Date(),
-        },
-      });
-
-      await tx.booking.update({
-        where: { id: payment.bookingId },
-        data: {
-          bookingStatus: "ACTIVE",
-        },
-      });
-
-      await tx.property.update({
-        where: { id: payment.booking.propertyId },
-        data: {
-          availabilityStatus: "RENTED",
-        },
-      });
-
-      return updatedPayment;
-    });
-
-    return confirmedPayment;
+    default:
+      return { processed: false };
   }
-
-  return null;
 };
 
 const getMyPayments = async (tenantId: string) => {
@@ -211,13 +294,7 @@ const getMyPayments = async (tenantId: string) => {
         isDeleted: false,
       },
     },
-    include: {
-      booking: {
-        include: {
-          property: true,
-        },
-      },
-    },
+    include: paymentInclude,
     orderBy: {
       createdAt: "desc",
     },
@@ -231,13 +308,7 @@ const getPaymentById = async (paymentId: string, tenantId: string) => {
     where: {
       id: paymentId,
     },
-    include: {
-      booking: {
-        include: {
-          property: true,
-        },
-      },
-    },
+    include: paymentInclude,
   });
 
   if (!payment) {
@@ -256,6 +327,7 @@ const getPaymentById = async (paymentId: string, tenantId: string) => {
 
 export const PaymentServices = {
   createStripeCheckoutSession,
+  confirmPayment,
   handleStripeWebhook,
   getMyPayments,
   getPaymentById,

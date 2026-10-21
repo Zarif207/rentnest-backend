@@ -6,6 +6,14 @@ const createStripeCheckoutSessionSchema = z.object({
   }),
 });
 
+const confirmPaymentSchema = z.object({
+  body: z.object({
+    sessionId: z
+      .string()
+      .regex(/^cs_(test|live)_[A-Za-z0-9]+$/, "Invalid Stripe checkout session ID"),
+  }),
+});
+
 const paymentIdValidationSchema = z.object({
   params: z.object({
     id: z.string().uuid("Invalid payment ID"),
@@ -14,5 +22,6 @@ const paymentIdValidationSchema = z.object({
 
 export const PaymentValidation = {
   createStripeCheckoutSessionSchema,
+  confirmPaymentSchema,
   paymentIdValidationSchema,
 };
