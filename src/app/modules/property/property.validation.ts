@@ -86,6 +86,8 @@ const updatePropertyValidationSchema = z.object({
     images: z
       .array(z.string().url())
       .optional(),
+  }).refine((body) => Object.keys(body).length > 0, {
+    message: "Provide at least one field to update",
   }),
 });
 

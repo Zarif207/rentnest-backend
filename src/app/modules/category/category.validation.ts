@@ -7,6 +7,9 @@ const createCategoryValidationSchema = z.object({
 });
 
 const updateCategoryValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Invalid category ID"),
+  }),
   body: z.object({
     name: z.string().min(1, "Category name is required"),
   }),

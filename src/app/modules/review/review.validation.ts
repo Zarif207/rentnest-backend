@@ -15,6 +15,13 @@ const createReviewSchema = z.object({
   }),
 });
 
+const propertyReviewsValidationSchema = z.object({
+  params: z.object({
+    propertyId: z.string().uuid("Invalid property ID"),
+  }),
+});
+
 export const ReviewValidation = {
   createReviewSchema,
+  propertyReviewsValidationSchema,
 };

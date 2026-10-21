@@ -15,6 +15,7 @@ router.post(
 
 router.get(
   "/property/:propertyId",
+  validateRequest(ReviewValidation.propertyReviewsValidationSchema),
   ReviewControllers.getPropertyReviews,
 );
 
