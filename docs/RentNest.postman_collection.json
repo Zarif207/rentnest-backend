@@ -298,6 +298,50 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Update my profile (current token)",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"01900000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Any role. Only name, email and phone can change; role/userStatus/password are rejected (400). An email used by another account returns 409."
+          },
+          "response": []
         }
       ]
     },
@@ -306,7 +350,7 @@
       "description": "No authentication required.",
       "item": [
         {
-          "name": "List properties (search, filter)",
+          "name": "List properties (search, filter, paginate)",
           "event": [
             {
               "listen": "test",
@@ -328,7 +372,7 @@
             },
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/properties?searchTerm=apartment",
+              "raw": "{{baseUrl}}/api/properties?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -338,8 +382,29 @@
               ],
               "query": [
                 {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "rentAmount",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc",
+                  "disabled": true,
+                  "description": "asc | desc (default desc)"
+                },
+                {
                   "key": "searchTerm",
                   "value": "apartment",
+                  "disabled": true,
                   "description": "Matches title, description, city, address"
                 },
                 {
@@ -497,6 +562,63 @@
       "name": "Landlord",
       "description": "Requires a LANDLORD token (run \"Login as Landlord\" first).",
       "item": [
+        {
+          "name": "List my properties",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{landlordToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/properties?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "landlord",
+                "properties"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "rentAmount",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc",
+                  "disabled": true,
+                  "description": "asc | desc (default desc)"
+                },
+                {
+                  "key": "availabilityStatus",
+                  "value": "AVAILABLE",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Same filters as the public property list, limited to your own properties."
+          },
+          "response": []
+        },
         {
           "name": "Create property",
           "event": [
@@ -703,7 +825,7 @@
             },
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/landlord/requests",
+              "raw": "{{baseUrl}}/api/landlord/requests?",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -711,6 +833,14 @@
                 "api",
                 "landlord",
                 "requests"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "disabled": true,
+                  "description": "PENDING | APPROVED | REJECTED | CANCELLED | ACTIVE | COMPLETED"
+                }
               ]
             }
           },
@@ -832,7 +962,7 @@
                 "complete"
               ]
             },
-            "description": "Only ACTIVE (paid) rentals can be completed."
+            "description": "Any ACTIVE (paid) rental can be completed, e.g. early move-out. The property becomes AVAILABLE again."
           },
           "response": []
         },
@@ -860,6 +990,62 @@
                 "api",
                 "rentals",
                 "{{rentalId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List reviews on my properties",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{landlordToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/reviews?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "landlord",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "rating",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc",
+                  "disabled": true,
+                  "description": "asc | desc (default desc)"
+                },
+                {
+                  "key": "propertyId",
+                  "value": "{{propertyId}}",
+                  "disabled": true
+                }
               ]
             }
           },
@@ -943,13 +1129,21 @@
             },
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/rentals",
+              "raw": "{{baseUrl}}/api/rentals?",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "rentals"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "APPROVED",
+                  "disabled": true,
+                  "description": "PENDING | APPROVED | REJECTED | CANCELLED | ACTIVE | COMPLETED"
+                }
               ]
             }
           },
@@ -985,7 +1179,7 @@
           "response": []
         },
         {
-          "name": "Create Stripe checkout session",
+          "name": "Create payment (Stripe checkout session)",
           "event": [
             {
               "listen": "test",
@@ -996,6 +1190,67 @@
                   "if (json && json.success) {",
                   "  if (json.data.paymentId !== undefined) pm.collectionVariables.set(\"paymentId\", json.data.paymentId);",
                   "  if (json.data.sessionId !== undefined) pm.collectionVariables.set(\"sessionId\", json.data.sessionId);",
+                  "  if (json.data.checkoutUrl !== undefined) pm.collectionVariables.set(\"checkoutUrl\", json.data.checkoutUrl);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{rentalId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "create"
+              ]
+            },
+            "description": "Only for your own APPROVED rental. Open data.checkoutUrl in a browser and pay with test card 4242 4242 4242 4242 (any future date, any CVC).\nCalling it again reuses an open session or replaces an expired/failed one. POST /api/payments/checkout is an alias."
+          },
+          "response": []
+        },
+        {
+          "name": "Create payment (alias: /checkout)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.success) {",
+                  "  if (json.data.paymentId !== undefined) pm.collectionVariables.set(\"paymentId\", json.data.paymentId);",
+                  "  if (json.data.sessionId !== undefined) pm.collectionVariables.set(\"sessionId\", json.data.sessionId);",
+                  "  if (json.data.checkoutUrl !== undefined) pm.collectionVariables.set(\"checkoutUrl\", json.data.checkoutUrl);",
                   "}"
                 ]
               }
@@ -1039,7 +1294,51 @@
                 "checkout"
               ]
             },
-            "description": "Only for your own APPROVED rental. Open data.checkoutUrl in a browser and pay with test card 4242 4242 4242 4242."
+            "description": "Backwards-compatible alias of POST /api/payments/create."
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm payment",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "confirm"
+              ]
+            },
+            "description": "Verifies the Checkout Session with Stripe. When paid: payment PAID, rental ACTIVE, property RENTED. Safe to call even if the webhook already ran."
           },
           "response": []
         },
@@ -1178,7 +1477,7 @@
             },
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/admin/users",
+              "raw": "{{baseUrl}}/api/admin/users?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1186,6 +1485,44 @@
                 "api",
                 "admin",
                 "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc",
+                  "disabled": true,
+                  "description": "asc | desc (default desc)"
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "tenant",
+                  "disabled": true,
+                  "description": "Matches name or email"
+                },
+                {
+                  "key": "role",
+                  "value": "TENANT",
+                  "disabled": true
+                },
+                {
+                  "key": "userStatus",
+                  "value": "ACTIVE",
+                  "disabled": true
+                }
               ]
             }
           },
@@ -1231,7 +1568,8 @@
                 "users",
                 "{{userId}}"
               ]
-            }
+            },
+            "description": "Admins cannot block themselves or other admins (403). A blocked user cannot log in or use protected routes."
           },
           "response": []
         },
@@ -1295,7 +1633,7 @@
             },
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/admin/properties",
+              "raw": "{{baseUrl}}/api/admin/properties?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1303,6 +1641,28 @@
                 "api",
                 "admin",
                 "properties"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc",
+                  "disabled": true,
+                  "description": "asc | desc (default desc)"
+                }
               ]
             }
           },
@@ -1324,7 +1684,7 @@
             },
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/admin/rentals",
+              "raw": "{{baseUrl}}/api/admin/rentals?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1332,6 +1692,34 @@
                 "api",
                 "admin",
                 "rentals"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "totalRent",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc",
+                  "disabled": true,
+                  "description": "asc | desc (default desc)"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "disabled": true,
+                  "description": "PENDING | APPROVED | REJECTED | CANCELLED | ACTIVE | COMPLETED"
+                }
               ]
             }
           },
@@ -1504,7 +1892,7 @@
                 "webhook"
               ]
             },
-            "description": "Configure in the Stripe dashboard (event: checkout.session.completed) or forward locally with `stripe listen --forward-to localhost:4000/api/payments/webhook`."
+            "description": "Configure in the Stripe dashboard (events: checkout.session.completed, checkout.session.expired, checkout.session.async_payment_failed) or forward locally with `stripe listen --forward-to localhost:4000/api/payments/webhook`."
           },
           "response": []
         }
@@ -1552,6 +1940,95 @@
                 "api",
                 "auth",
                 "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "401 invalid token",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{invalidToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Malformed or expired JWT."
+          },
+          "response": []
+        },
+        {
+          "name": "401 wrong password",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{tenantEmail}}\",\n  \"password\": \"wrong-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Same 401 'Invalid email or password' for an unknown email."
+          },
+          "response": []
+        },
+        {
+          "name": "404 property not found",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/properties/00000000-0000-4000-8000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "properties",
+                "00000000-0000-4000-8000-000000000000"
               ]
             }
           },
@@ -1735,6 +2212,16 @@
     {
       "key": "sessionId",
       "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkoutUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invalidToken",
+      "value": "invalid.jwt.token",
       "type": "string"
     },
     {
