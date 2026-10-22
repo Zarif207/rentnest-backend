@@ -1,27 +1,49 @@
 {
   "name": "rentnest-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "RentNest: rental property marketplace REST API with role-based access and Stripe payments",
+  "keywords": [
+    "rental",
+    "property",
+    "marketplace",
+    "rest-api",
+    "express",
+    "typescript",
+    "prisma",
+    "postgresql",
+    "stripe",
+    "jwt",
+    "vercel"
+  ],
+  "homepage": "https://rentnest-backend-one.vercel.app",
+  "bugs": {
+    "url": "https://github.com/Zarif207/rentnest-backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zarif207/rentnest-backend.git"
+  },
+  "license": "MIT",
+  "author": "Zarif Hasan (https://github.com/Zarif207)",
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc",
     "start": "tsx src/server.ts",
-    "seed": "prisma db seed"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
-  "devDependencies": {
-    "@types/cookie-parser": "^1.4.10",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "oxlint": "^1.89.0",
-    "prettier": "^3.9.10",
-    "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src api prisma",
+    "lint:fix": "oxlint --fix src api prisma",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "seed": "prisma db seed",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.0",
@@ -38,5 +60,15 @@
     "prisma": "^7.9.0",
     "stripe": "^22.6.1",
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "oxlint": "^1.89.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   }
 }
