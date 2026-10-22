@@ -1,0 +1,43 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // oxlint is used instead of typescript-eslint because the project builds with
+  // TypeScript 7 (native), which typescript-eslint does not support yet.
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "env": {
+    "node": true,
+    "es2024": true
+  },
+  "rules": {
+    // `const { password, ...user } = row` intentionally drops a field.
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ],
+    "typescript/no-explicit-any": "warn",
+    // `import Stripe from "stripe"` and `bcrypt.hash()` are the libraries'
+    // documented usage, not mistakes.
+    "import/no-named-as-default": "off",
+    "import/no-named-as-default-member": "off",
+    // Side-effect imports are needed for module augmentation (express.d.ts).
+    "import/no-unassigned-import": "off"
+  },
+  "overrides": [
+    {
+      // The triple-slash reference loads the Express Request augmentation in
+      // every entry point (including Vercel's api/index.ts); see src/app.ts.
+      "files": ["src/app.ts"],
+      "rules": {
+        "typescript/triple-slash-reference": "off"
+      }
+    }
+  ],
+  "ignorePatterns": ["dist/**", "generated/**", "node_modules/**"]
+}
