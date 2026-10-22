@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RentNest API",
-    "description": "RentNest rental marketplace API (Express, TypeScript, Prisma, PostgreSQL, Stripe).\n\n1. Set `baseUrl` (local: http://localhost:4000, or the live URL).\n2. Run the three Login requests in Auth; tokens are stored automatically.\n3. IDs (propertyId, categoryId, rentalId, paymentId, userId) are captured from responses.\n\nSuccess: { success, message, data, meta? } · Error: { success: false, message, errorDetails }",
+    "description": "RentNest rental marketplace API (Express, TypeScript, Prisma, PostgreSQL, Stripe).\n\n1. `baseUrl` defaults to the live API (https://rentnest-backend-one.vercel.app). For local development change it to http://localhost:4000.\n2. Run the three Login requests in Auth; tokens are stored automatically.\n3. IDs (propertyId, categoryId, rentalId, paymentId, userId) are captured from responses.\n\nSuccess: { success, message, data, meta? } · Error: { success: false, message, errorDetails }",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -2141,7 +2141,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:4000",
+      "value": "https://rentnest-backend-one.vercel.app",
       "type": "string"
     },
     {
