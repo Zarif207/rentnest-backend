@@ -215,10 +215,7 @@ const updateRentalRequestStatus = async (
   });
 
   if (!rentalRequest) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Rental request not found",
-    );
+    throw new AppError(httpStatus.NOT_FOUND, "Rental request not found");
   }
 
   if (rentalRequest.bookingStatus !== "PENDING") {

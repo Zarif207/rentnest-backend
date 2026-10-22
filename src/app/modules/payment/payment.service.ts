@@ -177,7 +177,10 @@ const createStripeCheckoutSession = async (
       );
     }
 
-    if (existing.status === "open" && booking.payment.paymentStatus === "PENDING") {
+    if (
+      existing.status === "open" &&
+      booking.payment.paymentStatus === "PENDING"
+    ) {
       return {
         sessionId: existing.id,
         checkoutUrl: existing.url,

@@ -32,7 +32,4 @@ export const PROPERTY_TYPES = [
   "VILLA",
 ] as const;
 
-export const AVAILABILITY_STATUSES = [
-  "AVAILABLE",
-  "RENTED",
-] as const;
+export const AVAILABILITY_STATUSES = ["AVAILABLE", "RENTED"] as const;

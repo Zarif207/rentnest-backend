@@ -6,7 +6,6 @@ import {
   propertySortableFields,
 } from "./property.constant.js";
 
-
 const createPropertyValidationSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Title is required"),
@@ -50,52 +49,36 @@ const updatePropertyValidationSchema = z.object({
     id: z.string().uuid("Invalid property ID"),
   }),
 
-  body: z.object({
-    title: z.string().min(1).optional(),
-    description: z.string().min(1).optional(),
-    address: z.string().min(1).optional(),
-    city: z.string().min(1).optional(),
-    division: z.string().min(1).optional(),
+  body: z
+    .object({
+      title: z.string().min(1).optional(),
+      description: z.string().min(1).optional(),
+      address: z.string().min(1).optional(),
+      city: z.string().min(1).optional(),
+      division: z.string().min(1).optional(),
 
-    rentAmount: z.coerce
-      .number()
-      .positive()
-      .optional(),
+      rentAmount: z.coerce.number().positive().optional(),
 
-    bedrooms: z.coerce
-      .number()
-      .int()
-      .nonnegative()
-      .optional(),
+      bedrooms: z.coerce.number().int().nonnegative().optional(),
 
-    bathrooms: z.coerce
-      .number()
-      .int()
-      .nonnegative()
-      .optional(),
+      bathrooms: z.coerce.number().int().nonnegative().optional(),
 
-    area: z.coerce
-      .number()
-      .int()
-      .positive()
-      .optional(),
+      area: z.coerce.number().int().positive().optional(),
 
-    propertyType: z.enum(PROPERTY_TYPES).optional(),
-    availabilityStatus: z.enum(AVAILABILITY_STATUSES).optional(),
-    categoryId: z.string().uuid("Invalid category ID").optional(),
+      propertyType: z.enum(PROPERTY_TYPES).optional(),
+      availabilityStatus: z.enum(AVAILABILITY_STATUSES).optional(),
+      categoryId: z.string().uuid("Invalid category ID").optional(),
 
-    amenities: z
-      .array(z.string().min(1, "Amenity cannot be empty"))
-      .optional(),
+      amenities: z
+        .array(z.string().min(1, "Amenity cannot be empty"))
+        .optional(),
 
-    images: z
-      .array(z.string().url())
-      .optional(),
-  }).refine((body) => Object.keys(body).length > 0, {
-    message: "Provide at least one field to update",
-  }),
+      images: z.array(z.string().url()).optional(),
+    })
+    .refine((body) => Object.keys(body).length > 0, {
+      message: "Provide at least one field to update",
+    }),
 });
-
 
 const propertyIdValidationSchema = z.object({
   params: z.object({
@@ -104,45 +87,42 @@ const propertyIdValidationSchema = z.object({
 });
 
 const propertyQueryValidationSchema = z.object({
-  query: z.object({
-    searchTerm: z.string().optional(),
-    city: z.string().optional(),
-    division: z.string().optional(),
+  query: z
+    .object({
+      searchTerm: z.string().optional(),
+      city: z.string().optional(),
+      division: z.string().optional(),
 
-    propertyType: z.enum(PROPERTY_TYPES).optional(),
+      propertyType: z.enum(PROPERTY_TYPES).optional(),
 
-    availabilityStatus: z
-      .enum(AVAILABILITY_STATUSES)
-      .optional(),
+      availabilityStatus: z.enum(AVAILABILITY_STATUSES).optional(),
 
-    categoryId: z
-      .string()
-      .uuid("Invalid category ID")
-      .optional(),
+      categoryId: z.string().uuid("Invalid category ID").optional(),
 
-    amenities: z.string().optional(),
+      amenities: z.string().optional(),
 
-    minPrice: z.coerce
-      .number()
-      .positive("Minimum price must be greater than 0")
-      .optional(),
+      minPrice: z.coerce
+        .number()
+        .positive("Minimum price must be greater than 0")
+        .optional(),
 
-    maxPrice: z.coerce
-      .number()
-      .positive("Maximum price must be greater than 0")
-      .optional(),
+      maxPrice: z.coerce
+        .number()
+        .positive("Maximum price must be greater than 0")
+        .optional(),
 
-    ...paginationHelper.paginationQueryFields(propertySortableFields),
-  }).refine(
-    (query) =>
-      query.minPrice === undefined ||
-      query.maxPrice === undefined ||
-      query.minPrice <= query.maxPrice,
-    {
-      message: "Minimum price cannot be greater than maximum price",
-      path: ["minPrice"],
-    },
-  ),
+      ...paginationHelper.paginationQueryFields(propertySortableFields),
+    })
+    .refine(
+      (query) =>
+        query.minPrice === undefined ||
+        query.maxPrice === undefined ||
+        query.minPrice <= query.maxPrice,
+      {
+        message: "Minimum price cannot be greater than maximum price",
+        path: ["minPrice"],
+      },
+    ),
 });
 
 export const PropertyValidations = {

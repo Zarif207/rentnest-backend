@@ -30,7 +30,6 @@ router.get(
 
 // Landlord routes
 
-
 // Admin routes
 const adminRouter = express.Router();
 

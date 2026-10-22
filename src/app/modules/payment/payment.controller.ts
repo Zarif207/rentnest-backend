@@ -4,8 +4,6 @@ import catchAsync from "../../utils/catchAsync.js";
 import sendResponse from "../../utils/sendResponse.js";
 import { PaymentServices } from "./payment.service.js";
 
-
-
 const getMyPayments = catchAsync(async (req, res) => {
   const result = await PaymentServices.getMyPayments(req.user.userId);
 
@@ -60,7 +58,10 @@ const confirmPayment = catchAsync(async (req, res) => {
 });
 
 const handleStripeWebhook = catchAsync(async (req, res) => {
-  await PaymentServices.handleStripeWebhook(req.body, req.headers["stripe-signature"] as string);
+  await PaymentServices.handleStripeWebhook(
+    req.body,
+    req.headers["stripe-signature"] as string,
+  );
 
   res.status(httpStatus.OK).json({
     received: true,

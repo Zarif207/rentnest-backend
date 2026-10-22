@@ -1,10 +1,7 @@
 import bcrypt from "bcryptjs";
 import prisma from "../src/lib/prisma.js";
 import config from "../src/config/index.js";
-import type {
-  PropertyType,
-  UserRole,
-} from "../generated/prisma/client.js";
+import type { PropertyType, UserRole } from "../generated/prisma/client.js";
 
 // Idempotent: safe to run more than once. The admin password is reset on
 // every run so the printed credentials always work.
@@ -23,10 +20,30 @@ const demoUsers: {
   phone: string;
   role: Exclude<UserRole, "ADMIN">;
 }[] = [
-  { name: "Rahim Landlord", email: "landlord1@rentnest.com", phone: "01710000001", role: "LANDLORD" },
-  { name: "Karim Landlord", email: "landlord2@rentnest.com", phone: "01710000002", role: "LANDLORD" },
-  { name: "Nadia Tenant", email: "tenant1@rentnest.com", phone: "01810000001", role: "TENANT" },
-  { name: "Arif Tenant", email: "tenant2@rentnest.com", phone: "01810000002", role: "TENANT" },
+  {
+    name: "Rahim Landlord",
+    email: "landlord1@rentnest.com",
+    phone: "01710000001",
+    role: "LANDLORD",
+  },
+  {
+    name: "Karim Landlord",
+    email: "landlord2@rentnest.com",
+    phone: "01710000002",
+    role: "LANDLORD",
+  },
+  {
+    name: "Nadia Tenant",
+    email: "tenant1@rentnest.com",
+    phone: "01810000001",
+    role: "TENANT",
+  },
+  {
+    name: "Arif Tenant",
+    email: "tenant2@rentnest.com",
+    phone: "01810000002",
+    role: "TENANT",
+  },
 ];
 
 const demoProperties: {
@@ -49,7 +66,8 @@ const demoProperties: {
     ownerEmail: "landlord1@rentnest.com",
     category: "Apartment",
     title: "Modern 3-Bed Apartment in Gulshan",
-    description: "Bright family apartment with lift, generator backup and lake view.",
+    description:
+      "Bright family apartment with lift, generator backup and lake view.",
     address: "Road 45, Gulshan 2",
     city: "Dhaka",
     division: "Dhaka",
@@ -65,7 +83,8 @@ const demoProperties: {
     ownerEmail: "landlord1@rentnest.com",
     category: "Studio",
     title: "Furnished Studio near Dhanmondi Lake",
-    description: "Compact furnished studio, ideal for students and young professionals.",
+    description:
+      "Compact furnished studio, ideal for students and young professionals.",
     address: "Road 8A, Dhanmondi",
     city: "Dhaka",
     division: "Dhaka",
@@ -81,7 +100,8 @@ const demoProperties: {
     ownerEmail: "landlord2@rentnest.com",
     category: "House",
     title: "Family House with Garden in Agrabad",
-    description: "Two-storey house with private garden, rooftop and car parking.",
+    description:
+      "Two-storey house with private garden, rooftop and car parking.",
     address: "Agrabad Commercial Area",
     city: "Chattogram",
     division: "Chattogram",
@@ -97,7 +117,8 @@ const demoProperties: {
     ownerEmail: "landlord2@rentnest.com",
     category: "Villa",
     title: "Hillside Villa in Sylhet",
-    description: "Spacious villa surrounded by tea gardens with a private pool.",
+    description:
+      "Spacious villa surrounded by tea gardens with a private pool.",
     address: "Airport Road",
     city: "Sylhet",
     division: "Sylhet",
@@ -167,9 +188,12 @@ async function main() {
 
   console.log("\n🌱 Seed complete");
   console.log(`   Categories : ${categories.join(", ")}`);
-  console.log(`   Properties : ${createdProperties} created, ${demoProperties.length - createdProperties} already existed`);
+  console.log(
+    `   Properties : ${createdProperties} created, ${demoProperties.length - createdProperties} already existed`,
+  );
   console.log("\n   Demo users (password: " + DEMO_PASSWORD + ")");
-  for (const user of demoUsers) console.log(`   - ${user.role.padEnd(8)} ${user.email}`);
+  for (const user of demoUsers)
+    console.log(`   - ${user.role.padEnd(8)} ${user.email}`);
   console.log("\n   🔐 Admin credentials");
   console.log(`   Email    : ${ADMIN_EMAIL}`);
   console.log(`   Password : ${ADMIN_PASSWORD}\n`);

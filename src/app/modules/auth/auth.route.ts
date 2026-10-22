@@ -18,10 +18,6 @@ router.post(
   AuthControllers.loginUser,
 );
 
-router.get(
-  "/me",
-  auth("TENANT", "LANDLORD", "ADMIN"),
-  AuthControllers.getMe,
-);
+router.get("/me", auth("TENANT", "LANDLORD", "ADMIN"), AuthControllers.getMe);
 
 export const AuthRoutes = router;

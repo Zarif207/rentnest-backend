@@ -78,8 +78,6 @@ const updateRentalRequestStatus = catchAsync(async (req, res) => {
   });
 });
 
-
-
 const getAllRentalRequestsForAdmin = catchAsync(async (req, res) => {
   const result = await RentalServices.getAllRentalRequestsForAdmin(
     req.query.status as TBookingStatus | undefined,
@@ -108,8 +106,6 @@ const completeRental = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
-
 
 export const RentalControllers = {
   createRentalRequest,

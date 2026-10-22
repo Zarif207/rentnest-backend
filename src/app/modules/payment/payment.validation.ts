@@ -10,7 +10,10 @@ const confirmPaymentSchema = z.object({
   body: z.object({
     sessionId: z
       .string()
-      .regex(/^cs_(test|live)_[A-Za-z0-9]+$/, "Invalid Stripe checkout session ID"),
+      .regex(
+        /^cs_(test|live)_[A-Za-z0-9]+$/,
+        "Invalid Stripe checkout session ID",
+      ),
   }),
 });
 

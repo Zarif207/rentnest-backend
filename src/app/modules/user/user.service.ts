@@ -64,7 +64,6 @@ const getAllUsers = async (
   };
 };
 
-
 const updateUserStatus = async (
   id: string,
   adminId: string,
