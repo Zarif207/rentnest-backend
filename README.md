@@ -58,7 +58,7 @@ RentNest is the backend for a rental marketplace with three roles, chosen at reg
 - View own requests, filter by status (`PENDING`, `APPROVED`, `REJECTED`, `ACTIVE`, `COMPLETED`)
 - Pay for an approved rental with **Stripe Checkout**; retry after an expired or failed session
 - View payment history and payment details
-- Review a property once per completed rental
+- Review a property once per active or completed rental
 - View and update own profile
 
 </details>
@@ -259,7 +259,7 @@ Full details (bodies, validation rules, examples, error codes): **[`docs/api.md`
 | POST   | `/api/payments/confirm`               | Tenant           | Confirm a paid session                                   |
 | GET    | `/api/payments`                       | Tenant           | My payment history                                       |
 | GET    | `/api/payments/:id`                   | Tenant           | Payment details                                          |
-| POST   | `/api/reviews`                        | Tenant           | Review after a completed rental                          |
+| POST   | `/api/reviews`                        | Tenant           | Review an active or completed rental                     |
 | GET    | `/api/landlord/properties`            | Landlord         | My properties                                            |
 | POST   | `/api/landlord/properties`            | Landlord         | Create a property                                        |
 | PUT    | `/api/landlord/properties/:id`        | Landlord         | Update a property / set availability                     |

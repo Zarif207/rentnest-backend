@@ -337,7 +337,7 @@ Your payment history (newest first) with booking and property. Not paginated.
 
 ### `POST /api/reviews`
 
-Review a property after a **COMPLETED** rental: one review per completed rental.
+Review a property once your rental is **ACTIVE** or **COMPLETED**: one review per rental.
 
 | Field        | Type   | Rules             |
 | ------------ | ------ | ----------------- |
@@ -345,8 +345,8 @@ Review a property after a **COMPLETED** rental: one review per completed rental.
 | `rating`     | number | integer 1–5       |
 | `comment`    | string | 1–1000 characters |
 
-**201** → review (linked to the completed booking).
-**Errors:** 400 validation · 403 `You can only review a property after a completed rental` · 404 `Property not found` · 409 `You have already reviewed your completed rental for this property`.
+**201** → review (linked to the rental being reviewed).
+**Errors:** 400 validation · 403 `You can only review a property after your rental is active` · 404 `Property not found` · 409 `You have already reviewed this rental`.
 
 ---
 

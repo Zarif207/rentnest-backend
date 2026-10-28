@@ -1215,7 +1215,7 @@
           "response": []
         },
         {
-          "name": "Create review (after completed rental)",
+          "name": "Create review (active or completed rental)",
           "request": {
             "method": "POST",
             "auth": {

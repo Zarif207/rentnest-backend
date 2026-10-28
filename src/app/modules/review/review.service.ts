@@ -19,11 +19,11 @@ const createReview = async (userId: string, payload: ICreateReview) => {
     throw new AppError(httpStatus.NOT_FOUND, "Property not found");
   }
 
-  const completedBookings = await prisma.booking.findMany({
+  const eligibleBookings = await prisma.booking.findMany({
     where: {
       propertyId,
       tenantId: userId,
-      bookingStatus: "COMPLETED",
+      bookingStatus: { in: ["ACTIVE", "COMPLETED"] },
       isDeleted: false,
     },
     select: {
@@ -39,20 +39,20 @@ const createReview = async (userId: string, payload: ICreateReview) => {
     },
   });
 
-  if (completedBookings.length === 0) {
+  if (eligibleBookings.length === 0) {
     throw new AppError(
       httpStatus.FORBIDDEN,
-      "You can only review a property after a completed rental",
+      "You can only review a property after your rental is active",
     );
   }
 
-  // One review per completed rental (Review.bookingId is unique).
-  const bookingToReview = completedBookings.find((booking) => !booking.review);
+  // One review per rental (Review.bookingId is unique).
+  const bookingToReview = eligibleBookings.find((booking) => !booking.review);
 
   if (!bookingToReview) {
     throw new AppError(
       httpStatus.CONFLICT,
-      "You have already reviewed your completed rental for this property",
+      "You have already reviewed this rental",
     );
   }
 

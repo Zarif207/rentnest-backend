@@ -189,14 +189,14 @@ One Stripe payment per booking.
 
 ### Review
 
-A tenant's review of a property after a completed rental.
+A tenant's review of a property once their rental is active or completed.
 
-| Field        | Notes                                                |
-| ------------ | ---------------------------------------------------- |
-| `bookingId`  | **Unique**: exactly one review per completed rental. |
-| `propertyId` | **Indexed** for property and landlord review lists.  |
-| `rating`     | Integer 1–5 (validated).                             |
-| `comment`    | 1–1000 characters (validated).                       |
+| Field        | Notes                                               |
+| ------------ | --------------------------------------------------- |
+| `bookingId`  | **Unique**: exactly one review per rental.          |
+| `propertyId` | **Indexed** for property and landlord review lists. |
+| `rating`     | Integer 1–5 (validated).                            |
+| `comment`    | 1–1000 characters (validated).                      |
 
 **Design:** linking the review to a booking (not just the property) proves the reviewer actually rented the property and lets a tenant review again after a later, separate rental.
 
