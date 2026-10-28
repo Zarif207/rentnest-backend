@@ -360,12 +360,12 @@
                 },
                 {
                   "key": "city",
-                  "value": "Dhaka",
+                  "value": "Austin",
                   "disabled": true
                 },
                 {
                   "key": "division",
-                  "value": "Dhaka",
+                  "value": "Texas",
                   "disabled": true
                 },
                 {
@@ -576,7 +576,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Cozy 2-Bed Apartment in Banani\",\n  \"description\": \"Quiet apartment close to shops and transport.\",\n  \"address\": \"Road 11, Banani\",\n  \"city\": \"Dhaka\",\n  \"division\": \"Dhaka\",\n  \"rentAmount\": 350,\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"area\": 1100,\n  \"propertyType\": \"APARTMENT\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"amenities\": [\n    \"wifi\",\n    \"parking\",\n    \"lift\"\n  ],\n  \"images\": [\n    \"https://images.unsplash.com/photo-1505693416388-ac5ce068fe85\"\n  ]\n}",
+              "raw": "{\n  \"title\": \"Cozy 2-Bed Apartment in Wicker Park\",\n  \"description\": \"Quiet apartment close to shops and transport.\",\n  \"address\": \"1520 N Milwaukee Ave\",\n  \"city\": \"Chicago\",\n  \"division\": \"Illinois\",\n  \"rentAmount\": 2300,\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"area\": 1100,\n  \"propertyType\": \"APARTMENT\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"amenities\": [\n    \"wifi\",\n    \"parking\",\n    \"lift\"\n  ],\n  \"images\": [\n    \"https://images.unsplash.com/photo-1505693416388-ac5ce068fe85\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"

@@ -44,7 +44,7 @@ RentNest is the backend for a rental marketplace with three roles, chosen at reg
 <details open>
 <summary><b>Public</b></summary>
 
-- Browse properties with **search** (title, description, city, address), **filters** (city, division, property type, category, amenities, availability, price range), **pagination** and **sorting**
+- Browse properties with **search** (title, description, city, address), **filters** (city, state (`division`), property type, category, amenities, availability, price range), **pagination** and **sorting**
 - Property details with category and landlord contact
 - List categories and a property's reviews
 - Register as tenant or landlord, log in (JWT)
@@ -322,7 +322,7 @@ Full details (bodies, validation rules, examples, error codes): **[`docs/api.md`
 | Param                  | Example                           | Notes                                                  |
 | ---------------------- | --------------------------------- | ------------------------------------------------------ |
 | `searchTerm`           | `searchTerm=lake`                 | title, description, city, address (case-insensitive)   |
-| `city`, `division`     | `city=dhaka`                      | case-insensitive                                       |
+| `city`, `division`     | `city=austin`, `division=texas`   | case-insensitive; `division` is the US state           |
 | `propertyType`         | `propertyType=APARTMENT`          | `APARTMENT`, `HOUSE`, `STUDIO`, `VILLA`                |
 | `categoryId`           | `categoryId=<uuid>`               |                                                        |
 | `amenities`            | `amenities=wifi,parking`          | must have **all** listed                               |
@@ -332,7 +332,7 @@ Full details (bodies, validation rules, examples, error codes): **[`docs/api.md`
 | `sortBy`, `sortOrder`  | `sortBy=rentAmount&sortOrder=asc` | `createdAt`, `rentAmount`, `area`, `bedrooms`, `title` |
 
 ```
-GET https://rentnest-backend-one.vercel.app/api/properties?city=dhaka&propertyType=APARTMENT&amenities=wifi,parking&minPrice=100&maxPrice=500&page=1&limit=5&sortBy=rentAmount&sortOrder=asc
+GET https://rentnest-backend-one.vercel.app/api/properties?division=new%20york&propertyType=APARTMENT&amenities=wifi,elevator&minPrice=1000&maxPrice=5000&page=1&limit=5&sortBy=rentAmount&sortOrder=asc
 ```
 
 Admin users (`searchTerm`, `role`, `userStatus`), admin rentals (`status`) and landlord reviews (`propertyId`) are paginated the same way. See [`docs/api.md`](docs/api.md#pagination-sorting).

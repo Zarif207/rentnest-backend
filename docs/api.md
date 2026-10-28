@@ -148,7 +148,7 @@ No auth.
       "id": "2e74a46f-268d-4f9c-b8e4-870716d62ac6",
       "name": "Nadia Tenant",
       "email": "tenant1@rentnest.com",
-      "phone": "01810000001",
+      "phone": "+15035550103",
       "role": "TENANT",
       "userStatus": "ACTIVE",
       "createdAt": "2026-10-21T14:16:53.513Z",
@@ -189,7 +189,7 @@ No auth. Search, filter, paginate and sort properties.
 | ---------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
 | `searchTerm`                 | string                                                         | case-insensitive match on `title`, `description`, `city`, `address` |
 | `city`                       | string                                                         | case-insensitive exact match                                        |
-| `division`                   | string                                                         | case-insensitive exact match                                        |
+| `division`                   | string                                                         | case-insensitive exact match on the US state (e.g. `Texas`)         |
 | `propertyType`               | `APARTMENT` \| `HOUSE` \| `STUDIO` \| `VILLA`                  | exact                                                               |
 | `categoryId`                 | uuid                                                           | exact                                                               |
 | `amenities`                  | comma-separated string                                         | property must have **all** listed amenities                         |
@@ -198,19 +198,19 @@ No auth. Search, filter, paginate and sort properties.
 | `page`, `limit`, `sortOrder` | see [Pagination](#pagination-sorting)                          |                                                                     |
 | `sortBy`                     | `createdAt` \| `rentAmount` \| `area` \| `bedrooms` \| `title` |                                                                     |
 
-Example: `GET /api/properties?city=dhaka&limit=1&sortBy=rentAmount&sortOrder=asc`
+Example: `GET /api/properties?city=austin&limit=1&sortBy=rentAmount&sortOrder=asc`
 
 ```json
 {
   "success": true,
   "message": "Properties retrieved successfully",
-  "meta": { "page": 1, "limit": 1, "total": 3, "totalPage": 3 },
+  "meta": { "page": 1, "limit": 1, "total": 1, "totalPage": 1 },
   "data": [
     {
       "id": "47a4bebd-6eaa-4c4b-93e8-096096c904fe",
-      "title": "Furnished Studio near Dhanmondi Lake",
-      "city": "Dhaka",
-      "rentAmount": "180",
+      "title": "Furnished Studio near Lady Bird Lake",
+      "city": "Austin",
+      "rentAmount": "1450",
       "propertyType": "STUDIO",
       "availabilityStatus": "AVAILABLE",
       "amenities": ["wifi", "furnished", "air-conditioning"],
@@ -222,7 +222,7 @@ Example: `GET /api/properties?city=dhaka&limit=1&sortBy=rentAmount&sortOrder=asc
         "id": "b39e9683-e065-4d8b-a6bd-4669f030eb6c",
         "name": "Rahim Landlord",
         "email": "landlord1@rentnest.com",
-        "phone": "01710000001"
+        "phone": "+12125550101"
       }
     }
   ]
