@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import prisma from "../../../lib/prisma.js";
 import { UserServices } from "../user/user.service.js";
+import { NotificationServices } from "../notification/notification.service.js";
 import AppError from "../../utils/AppError.js";
 import httpStatus from "http-status";
 import { jwtHelper } from "../../helpers/jwtHelper.js";
@@ -26,7 +27,18 @@ const registerUser = async (payload: TRegisterUser) => {
   const result = await UserServices.createUser({
     ...payload,
     password: hashedPassword,
+    // Landlords wait for admin approval before they can list or manage rentals.
+    landlordStatus: payload.role === "LANDLORD" ? "PENDING" : null,
   });
+
+  if (result.role === "LANDLORD") {
+    await NotificationServices.notifyAdmins({
+      type: "LANDLORD_REGISTERED",
+      title: "New landlord to review",
+      message: `${result.name} (${result.email}) signed up as a landlord and is waiting for approval.`,
+      link: "/dashboard/admin/users?landlordStatus=PENDING",
+    });
+  }
 
   const { password, ...userData } = result;
 

@@ -109,7 +109,42 @@ const deleteProperty = catchAsync(async (req, res) => {
   });
 });
 
+const getMapProperties = catchAsync(async (req, res) => {
+  const result = await PropertyServices.getMapProperties();
+
+  // Public and the same for everyone: let browsers and the CDN cache it.
+  res.set(
+    "Cache-Control",
+    "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Map properties retrieved successfully",
+    data: result,
+  });
+});
+
+const getPropertyStates = catchAsync(async (req, res) => {
+  const result = await PropertyServices.getPropertyStates();
+
+  res.set(
+    "Cache-Control",
+    "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Property states retrieved successfully",
+    data: result,
+  });
+});
+
 export const PropertyControllers = {
+  getMapProperties,
+  getPropertyStates,
   getAllProperties,
   getAllPropertiesForAdmin,
   getMyProperties,

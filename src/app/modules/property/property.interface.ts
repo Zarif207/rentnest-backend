@@ -29,6 +29,9 @@ export type TCreateProperty = {
   amenities: string[];
 
   images: string[];
+
+  latitude?: number;
+  longitude?: number;
 };
 
 export type TUpdateProperty = {
@@ -46,4 +49,6 @@ export type TUpdateProperty = {
   categoryId?: string;
   amenities?: string[];
   images?: string[];
+  latitude?: number;
+  longitude?: number;
 };

@@ -5,6 +5,7 @@ import AppError from "../../utils/AppError.js";
 import { paginationHelper } from "../../helpers/paginationHelper.js";
 import { TPaginationOptions } from "../../interfaces/pagination.js";
 import { ICreateReview } from "./review.interface.js";
+import { NotificationServices } from "../notification/notification.service.js";
 
 const createReview = async (userId: string, payload: ICreateReview) => {
   const { propertyId, rating, comment } = payload;
@@ -73,6 +74,13 @@ const createReview = async (userId: string, payload: ICreateReview) => {
         },
       },
     },
+  });
+
+  await NotificationServices.notify(property.ownerId, {
+    type: "REVIEW_RECEIVED",
+    title: "New review",
+    message: `${review.user.name} rated ${property.title} ${rating}/5.`,
+    link: "/dashboard/landlord/reviews",
   });
 
   return review;

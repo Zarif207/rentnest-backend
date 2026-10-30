@@ -40,6 +40,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "seed": "prisma db seed",
+    "states:normalize": "tsx prisma/scripts/normalize-states.ts",
+    "geocode:backfill": "tsx prisma/scripts/geocode-backfill.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

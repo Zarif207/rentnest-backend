@@ -1,0 +1,7 @@
+// Admin-editable site configuration as JSON, one row per key (e.g. "homepage").
+// The shape of each value is validated in the site-setting module.
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}

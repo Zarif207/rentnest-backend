@@ -18,4 +18,7 @@ export default {
     process.env.CLIENT_SUCCESS_URL || "http://localhost:3000/payment/success",
   client_cancel_url:
     process.env.CLIENT_CANCEL_URL || "http://localhost:3000/payment/cancel",
+
+  // Contact email in the User-Agent sent to OpenStreetMap Nominatim (geocoding).
+  geocoder_email: process.env.GEOCODER_EMAIL || "",
 };

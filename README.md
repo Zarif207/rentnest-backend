@@ -371,6 +371,7 @@ npm run dev                 # http://localhost:4000
 | `CLIENT_CANCEL_URL`     |          | Redirect when checkout is cancelled (default `http://localhost:3000/payment/cancel`)                            |
 | `PORT`                  |          | Local port (default `4000`; not used on Vercel)                                                                 |
 | `NODE_ENV`              |          | `production` hides unexpected error details (set automatically on Vercel)                                       |
+| `GEOCODER_EMAIL`        |          | Contact email in the User-Agent sent to OpenStreetMap Nominatim when geocoding property addresses               |
 | `SEED_ADMIN_EMAIL`      |          | Seeded admin email (default `admin@rentnest.com`)                                                               |
 | `SEED_ADMIN_PASSWORD`   |          | Seeded admin password (default `Admin@123`)                                                                     |
 
@@ -384,19 +385,21 @@ Copy the printed `whsec_...` into `STRIPE_WEBHOOK_SECRET` and restart `npm run d
 
 ## Scripts
 
-| Script                            | What it does                                      |
-| --------------------------------- | ------------------------------------------------- |
-| `npm run dev`                     | Start with hot reload (`tsx watch`)               |
-| `npm run build`                   | `prisma generate` + type-check/compile with `tsc` |
-| `npm start`                       | Start the server (`tsx src/server.ts`)            |
-| `npm run typecheck`               | `tsc --noEmit`                                    |
-| `npm run lint` / `lint:fix`       | oxlint                                            |
-| `npm run format` / `format:check` | Prettier                                          |
-| `npm run seed`                    | Seed the database (idempotent)                    |
-| `npm run db:generate`             | Generate the Prisma client                        |
-| `npm run db:migrate`              | `prisma migrate dev` (development)                |
-| `npm run db:deploy`               | `prisma migrate deploy` (production)              |
-| `npm run db:studio`               | Prisma Studio                                     |
+| Script                            | What it does                                                                                        |
+| --------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `npm run dev`                     | Start with hot reload (`tsx watch`)                                                                 |
+| `npm run build`                   | `prisma generate` + type-check/compile with `tsc`                                                   |
+| `npm start`                       | Start the server (`tsx src/server.ts`)                                                              |
+| `npm run typecheck`               | `tsc --noEmit`                                                                                      |
+| `npm run lint` / `lint:fix`       | oxlint                                                                                              |
+| `npm run format` / `format:check` | Prettier                                                                                            |
+| `npm run seed`                    | Seed the database (idempotent)                                                                      |
+| `npm run states:normalize`        | Rewrite every property's `division` to the full US state name (idempotent; lists unknown values)    |
+| `npm run geocode:backfill`        | Fill missing property coordinates with OpenStreetMap Nominatim, 1.1 s between requests (idempotent) |
+| `npm run db:generate`             | Generate the Prisma client                                                                          |
+| `npm run db:migrate`              | `prisma migrate dev` (development)                                                                  |
+| `npm run db:deploy`               | `prisma migrate deploy` (production)                                                                |
+| `npm run db:studio`               | Prisma Studio                                                                                       |
 
 ## Deployment
 

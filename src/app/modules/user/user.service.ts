@@ -4,8 +4,13 @@ import AppError from "../../utils/AppError.js";
 import httpStatus from "http-status";
 import { paginationHelper } from "../../helpers/paginationHelper.js";
 import { TPaginationOptions } from "../../interfaces/pagination.js";
-import { TUpdateMyProfile, TUserFilters } from "./user.interface.js";
+import {
+  TUpdateLandlordStatus,
+  TUpdateMyProfile,
+  TUserFilters,
+} from "./user.interface.js";
 import { userSearchableFields } from "./user.constant.js";
+import { NotificationServices } from "../notification/notification.service.js";
 
 const createUser = async (payload: Prisma.UserCreateInput) => {
   const result = await prisma.user.create({
@@ -21,7 +26,7 @@ const getAllUsers = async (
 ) => {
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelper.calculatePagination(options);
-  const { searchTerm, role, userStatus } = filters;
+  const { searchTerm, role, userStatus, landlordStatus } = filters;
 
   const where: Prisma.UserWhereInput = {
     ...(searchTerm
@@ -34,6 +39,12 @@ const getAllUsers = async (
     ...(role ? { role: role as Prisma.UserWhereInput["role"] } : {}),
     ...(userStatus
       ? { userStatus: userStatus as Prisma.UserWhereInput["userStatus"] }
+      : {}),
+    ...(landlordStatus
+      ? {
+          landlordStatus:
+            landlordStatus as Prisma.UserWhereInput["landlordStatus"],
+        }
       : {}),
   };
 
@@ -51,6 +62,7 @@ const getAllUsers = async (
       phone: true,
       role: true,
       userStatus: true,
+      landlordStatus: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -105,9 +117,87 @@ const updateUserStatus = async (
       email: true,
       role: true,
       userStatus: true,
+      landlordStatus: true,
       updatedAt: true,
     },
   });
+
+  // Only tell the user when their status actually changed.
+  if (user.userStatus !== payload.userStatus) {
+    await NotificationServices.notify(
+      id,
+      payload.userStatus === "BLOCKED"
+        ? {
+            type: "ACCOUNT_BLOCKED",
+            title: "Your account was blocked",
+            message:
+              "An admin blocked your RentNest account. Contact support if you think this is a mistake.",
+          }
+        : {
+            type: "ACCOUNT_UNBLOCKED",
+            title: "Your account was restored",
+            message: "An admin unblocked your RentNest account. Welcome back.",
+          },
+    );
+  }
+
+  return result;
+};
+
+const updateLandlordStatus = async (
+  id: string,
+  payload: TUpdateLandlordStatus,
+) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id,
+    },
+    select: {
+      role: true,
+    },
+  });
+
+  // Only landlords have an approval status.
+  if (!user || user.role !== "LANDLORD") {
+    throw new AppError(httpStatus.NOT_FOUND, "Landlord not found");
+  }
+
+  const result = await prisma.user.update({
+    where: {
+      id,
+    },
+    data: {
+      landlordStatus: payload.landlordStatus,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      userStatus: true,
+      landlordStatus: true,
+      updatedAt: true,
+    },
+  });
+
+  await NotificationServices.notify(
+    id,
+    payload.landlordStatus === "APPROVED"
+      ? {
+          type: "LANDLORD_APPROVED",
+          title: "You're approved",
+          message:
+            "Your landlord account is approved. You can now list properties and manage rental requests.",
+          link: "/dashboard/landlord",
+        }
+      : {
+          type: "LANDLORD_REJECTED",
+          title: "Landlord application not approved",
+          message:
+            "Your landlord application was rejected. Contact support if you have questions.",
+          link: "/contact",
+        },
+  );
 
   return result;
 };
@@ -120,6 +210,7 @@ const profileSelect = {
   phone: true,
   role: true,
   userStatus: true,
+  landlordStatus: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -174,6 +265,7 @@ export const UserServices = {
   createUser,
   getAllUsers,
   updateUserStatus,
+  updateLandlordStatus,
   getMyProfile,
   updateMyProfile,
 };

@@ -1,5 +1,6 @@
 import express from "express";
 import auth from "../../middlewares/auth.js";
+import requireApprovedLandlord from "../../middlewares/requireApprovedLandlord.js";
 import validateRequest from "../../middlewares/validateRequest.js";
 import { PropertyControllers } from "./property.controller.js";
 import { PropertyValidations } from "./property.validation.js";
@@ -12,6 +13,10 @@ router.get(
   validateRequest(PropertyValidations.propertyQueryValidationSchema),
   PropertyControllers.getAllProperties,
 );
+
+// Before "/:id", which would otherwise reject these as invalid ids.
+router.get("/map", PropertyControllers.getMapProperties);
+router.get("/states", PropertyControllers.getPropertyStates);
 
 router.get(
   "/:id",
@@ -32,6 +37,7 @@ landlordRouter.get(
 landlordRouter.post(
   "/",
   auth("LANDLORD"),
+  requireApprovedLandlord,
   validateRequest(PropertyValidations.createPropertyValidationSchema),
   PropertyControllers.createProperty,
 );
@@ -39,6 +45,7 @@ landlordRouter.post(
 landlordRouter.put(
   "/:id",
   auth("LANDLORD"),
+  requireApprovedLandlord,
   validateRequest(PropertyValidations.updatePropertyValidationSchema),
   PropertyControllers.updateProperty,
 );
@@ -46,6 +53,7 @@ landlordRouter.put(
 landlordRouter.delete(
   "/:id",
   auth("LANDLORD"),
+  requireApprovedLandlord,
   validateRequest(PropertyValidations.propertyIdValidationSchema),
   PropertyControllers.deleteProperty,
 );

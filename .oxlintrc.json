@@ -27,7 +27,12 @@
     "import/no-named-as-default": "off",
     "import/no-named-as-default-member": "off",
     // Side-effect imports are needed for module augmentation (express.d.ts).
-    "import/no-unassigned-import": "off"
+    "import/no-unassigned-import": "off",
+    // Prisma names its aggregate fields `_count`, `_min` and `_all`.
+    "no-underscore-dangle": [
+      "warn",
+      { "allow": ["_count", "_min", "_all"] }
+    ]
   },
   "overrides": [
     {

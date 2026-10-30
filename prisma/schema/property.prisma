@@ -6,6 +6,10 @@ model Property {
   city        String
   division    String
 
+  // Map pin; geocoded from the address when not sent. null if geocoding failed.
+  latitude  Float?
+  longitude Float?
+
   rentAmount Decimal
   bedrooms   Int
   bathrooms  Int
@@ -23,8 +27,9 @@ model Property {
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id])
 
-  bookings Booking[]
-  reviews  Review[]
+  bookings  Booking[]
+  reviews   Review[]
+  favorites Favorite[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -43,6 +43,26 @@ const updateUserStatus = catchAsync(async (req, res) => {
   });
 });
 
+const updateLandlordStatus = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  if (!id || Array.isArray(id)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid user ID");
+  }
+
+  const result = await UserServices.updateLandlordStatus(id, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message:
+      result.landlordStatus === "APPROVED"
+        ? "Landlord approved successfully"
+        : "Landlord rejected successfully",
+    data: result,
+  });
+});
+
 const updateMyProfile = catchAsync(async (req, res) => {
   const result = await UserServices.updateMyProfile(req.user.userId, req.body);
 
@@ -57,5 +77,6 @@ const updateMyProfile = catchAsync(async (req, res) => {
 export const UserControllers = {
   getAllUsers,
   updateUserStatus,
+  updateLandlordStatus,
   updateMyProfile,
 };

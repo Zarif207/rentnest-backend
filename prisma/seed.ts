@@ -160,10 +160,12 @@ async function main() {
   const demoPassword = await bcrypt.hash(DEMO_PASSWORD, SALT_ROUNDS);
   const userIds = new Map<string, string>();
   for (const user of demoUsers) {
+    // Demo landlords are always approved, so they can list homes right away.
+    const landlordStatus = user.role === "LANDLORD" ? "APPROVED" : null;
     const saved = await prisma.user.upsert({
       where: { email: user.email },
-      update: {},
-      create: { ...user, password: demoPassword },
+      update: landlordStatus ? { landlordStatus } : {},
+      create: { ...user, password: demoPassword, landlordStatus },
     });
     userIds.set(user.email, saved.id);
   }

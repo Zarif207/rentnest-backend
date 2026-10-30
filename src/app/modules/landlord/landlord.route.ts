@@ -1,6 +1,7 @@
 import express from "express";
 
 import auth from "../../middlewares/auth.js";
+import requireApprovedLandlord from "../../middlewares/requireApprovedLandlord.js";
 import validateRequest from "../../middlewares/validateRequest.js";
 import { RentalControllers } from "../rental/rental.controller.js";
 import { RentalValidation } from "../rental/rental.validation.js";
@@ -19,6 +20,7 @@ router.get(
 router.patch(
   "/requests/:id",
   auth("LANDLORD"),
+  requireApprovedLandlord,
   validateRequest(RentalValidation.updateRentalStatusSchema),
   RentalControllers.updateRentalRequestStatus,
 );
@@ -26,6 +28,7 @@ router.patch(
 router.patch(
   "/requests/:id/complete",
   auth("LANDLORD"),
+  requireApprovedLandlord,
   validateRequest(RentalValidation.completeRentalValidationSchema),
   RentalControllers.completeRental,
 );

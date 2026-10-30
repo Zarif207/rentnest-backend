@@ -20,6 +20,13 @@ router.patch(
   UserControllers.updateUserStatus,
 );
 
+router.patch(
+  "/:id/landlord-status",
+  auth("ADMIN"),
+  validateRequest(UserValidation.updateLandlordStatusValidationSchema),
+  UserControllers.updateLandlordStatus,
+);
+
 // Profile routes for any signed-in user (mounted at /api/users)
 const profileRouter = express.Router();
 

@@ -11,8 +11,11 @@
 - [Auth & profile](#auth--profile)
 - [Public: properties, categories, reviews](#public)
 - [Tenant: rentals, payments, reviews](#tenant)
+- [Tenant favorites](#tenant-favorites)
 - [Landlord: properties, requests, reviews](#landlord)
 - [Admin: users, properties, rentals, categories](#admin)
+- [Homepage settings](#homepage-settings)
+- [Notifications: any signed-in role](#notifications)
 - [Stripe webhook](#stripe-webhook)
 
 ---
@@ -37,6 +40,15 @@ The `auth(...roles)` middleware runs before validation and:
 | User no longer exists                | 401    | `User not found`                                |
 | User is blocked                      | 403    | `User is blocked`                               |
 | Role not allowed on this route       | 403    | `Forbidden`                                     |
+
+Landlord **write** routes (create/update/delete a property, approve/reject a request, complete a rental) also run `requireApprovedLandlord` after `auth("LANDLORD")`:
+
+| Landlord status | Status | Message                                                    |
+| --------------- | ------ | ---------------------------------------------------------- |
+| `PENDING`       | 403    | `Your landlord account is waiting for admin approval`      |
+| `REJECTED`      | 403    | `Your landlord application was rejected. Contact support.` |
+
+Landlord read routes stay open, so a pending landlord can still use their dashboard.
 
 Tokens expire after `JWT_ACCESS_EXPIRES_IN` (default `7d`). The role is read from the token, so a role change takes effect at the next login.
 
@@ -124,7 +136,7 @@ No auth. Creates a `TENANT` or `LANDLORD` account (`ADMIN` cannot self-register)
 | `phone`    | string | optional               |
 | `role`     | enum   | `TENANT` \| `LANDLORD` |
 
-**201** → the new user without `password`.
+**201** → the new user without `password`. A `LANDLORD` starts with `landlordStatus: "PENDING"` until an admin approves them (see [`PATCH /api/admin/users/:id/landlord-status`](#patch-apiadminusersidlandlord-status)); a `TENANT` gets `landlordStatus: null`.
 **Errors:** 400 validation · 409 `User already exists`.
 
 ### `POST /api/auth/login`
@@ -151,6 +163,7 @@ No auth.
       "phone": "+15035550103",
       "role": "TENANT",
       "userStatus": "ACTIVE",
+      "landlordStatus": null,
       "createdAt": "2026-10-21T14:16:53.513Z",
       "updatedAt": "2026-10-21T14:42:25.046Z"
     }
@@ -162,7 +175,7 @@ No auth.
 
 ### `GET /api/auth/me`
 
-Auth: any role. **200** → the current user's profile from the database (no `password`).
+Auth: any role. **200** → the current user's profile from the database (no `password`), including `landlordStatus` (`PENDING` \| `APPROVED` \| `REJECTED` for landlords, `null` otherwise). Re-fetch it to pick up an approval without logging in again.
 
 ### `PATCH /api/users/me`
 
@@ -189,7 +202,7 @@ No auth. Search, filter, paginate and sort properties.
 | ---------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
 | `searchTerm`                 | string                                                         | case-insensitive match on `title`, `description`, `city`, `address` |
 | `city`                       | string                                                         | case-insensitive exact match                                        |
-| `division`                   | string                                                         | case-insensitive exact match on the US state (e.g. `Texas`)         |
+| `division`                   | string                                                         | US state, full name or 2-letter code (`MI` → `Michigan`), exact     |
 | `propertyType`               | `APARTMENT` \| `HOUSE` \| `STUDIO` \| `VILLA`                  | exact                                                               |
 | `categoryId`                 | uuid                                                           | exact                                                               |
 | `amenities`                  | comma-separated string                                         | property must have **all** listed amenities                         |
@@ -232,6 +245,38 @@ Example: `GET /api/properties?city=austin&limit=1&sortBy=rentAmount&sortOrder=as
 _(Each property also includes `description`, `address`, `division`, `bedrooms`, `bathrooms`, `area`, `images`, `categoryId`, `ownerId`, `createdAt`, `updatedAt`; trimmed here.)_
 
 **Errors:** 400 validation.
+
+### `GET /api/properties/map`
+
+No auth. Every property that has coordinates (newest first, at most 1000), trimmed for map pins. Not paginated. Sent with `Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=600`.
+
+**200**
+
+```json
+{
+  "success": true,
+  "message": "Map properties retrieved successfully",
+  "data": [
+    {
+      "id": "4e2569e3-2d90-497b-9eed-03f5fd2cfbdb",
+      "title": "Sunny 2-Bedroom Apartment in Midtown Manhattan",
+      "latitude": 40.763,
+      "longitude": -73.988,
+      "rentAmount": "3200",
+      "city": "New York",
+      "division": "New York",
+      "availabilityStatus": "AVAILABLE",
+      "image": "https://images.unsplash.com/…"
+    }
+  ]
+}
+```
+
+### `GET /api/properties/states`
+
+No auth. Every state that has properties, busiest first (used by the admin state picker). Cached like `/map`.
+
+**200** → `data`: `[{ "state": "New York", "propertyCount": 2, "availableCount": 1 }, …]`
 
 ### `GET /api/properties/:id`
 
@@ -350,9 +395,75 @@ Review a property once your rental is **ACTIVE** or **COMPLETED**: one review pe
 
 ---
 
+## Tenant favorites
+
+All routes below require a **TENANT** token. A favorite is removed automatically if its property is deleted.
+
+### `GET /api/favorites`
+
+Your saved homes, newest first, with the property summary (`image` is the first photo, or `null`).
+
+| Query param                  | Rules                                 |
+| ---------------------------- | ------------------------------------- |
+| `page`, `limit`, `sortOrder` | see [Pagination](#pagination-sorting) |
+| `sortBy`                     | `createdAt`                           |
+
+**200**
+
+```json
+{
+  "success": true,
+  "message": "Favorites retrieved successfully",
+  "meta": { "page": 1, "limit": 10, "total": 1, "totalPage": 1 },
+  "data": [
+    {
+      "id": "9b2e…",
+      "userId": "2e74…",
+      "propertyId": "4e25…",
+      "createdAt": "2026-10-30T12:50:02.000Z",
+      "property": {
+        "id": "4e25…",
+        "title": "Sunny 2-Bedroom Apartment in Midtown Manhattan",
+        "city": "New York",
+        "division": "New York",
+        "rentAmount": "3200",
+        "availabilityStatus": "AVAILABLE",
+        "propertyType": "APARTMENT",
+        "bedrooms": 2,
+        "bathrooms": 2,
+        "area": 950,
+        "image": "https://images.unsplash.com/…"
+      }
+    }
+  ]
+}
+```
+
+### `GET /api/favorites/ids`
+
+**200** → `data` is an array of the property ids you saved (for filling in heart icons), e.g. `["4e25…", "a1c9…"]`.
+
+### `POST /api/favorites`
+
+| Field        | Type | Rules      |
+| ------------ | ---- | ---------- |
+| `propertyId` | uuid | must exist |
+
+Idempotent. **201** `Saved to favorites` → the new favorite · **200** `Already in favorites` → the existing one.
+**Errors:** 400 validation · 404 `Property not found`.
+
+### `DELETE /api/favorites/:propertyId`
+
+Idempotent. **200** → `{ "removed": true }` (`Removed from favorites`) or `{ "removed": false }` (`Not in favorites`).
+**Errors:** 400 invalid id.
+
+---
+
 ## Landlord
 
 All routes below require a **LANDLORD** token. Landlords can only see and change their own properties and the requests for them.
+
+The write routes (`POST`/`PUT`/`DELETE /api/landlord/properties`, `PATCH /api/landlord/requests/:id` and `/complete`) also require an **approved** landlord: a `PENDING` or `REJECTED` landlord gets **403** (see [Authentication](#authentication)). The `GET` routes work for every landlord.
 
 ### `GET /api/landlord/properties`
 
@@ -360,23 +471,28 @@ Your properties, with the same filters, sorting and pagination as [`GET /api/pro
 
 ### `POST /api/landlord/properties`
 
-| Field                                                 | Type     | Rules                                         |
-| ----------------------------------------------------- | -------- | --------------------------------------------- |
-| `title`, `description`, `address`, `city`, `division` | string   | required, min 1                               |
-| `rentAmount`                                          | number   | > 0 (monthly)                                 |
-| `bedrooms`, `bathrooms`                               | number   | integer ≥ 0                                   |
-| `area`                                                | number   | integer > 0                                   |
-| `propertyType`                                        | enum     | `APARTMENT` \| `HOUSE` \| `STUDIO` \| `VILLA` |
-| `categoryId`                                          | uuid     | must exist                                    |
-| `amenities`                                           | string[] | at least 1, non-empty strings                 |
-| `images`                                              | string[] | at least 1, valid URLs                        |
+| Field                                     | Type     | Rules                                                                                                           |
+| ----------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `title`, `description`, `address`, `city` | string   | required, min 1                                                                                                 |
+| `division`                                | string   | US state: full name or 2-letter code, any case; saved as the full name (`ny` → `New York`); anything else → 400 |
+| `rentAmount`                              | number   | > 0 (monthly)                                                                                                   |
+| `bedrooms`, `bathrooms`                   | number   | integer ≥ 0                                                                                                     |
+| `area`                                    | number   | integer > 0                                                                                                     |
+| `propertyType`                            | enum     | `APARTMENT` \| `HOUSE` \| `STUDIO` \| `VILLA`                                                                   |
+| `categoryId`                              | uuid     | must exist                                                                                                      |
+| `amenities`                               | string[] | at least 1, non-empty strings                                                                                   |
+| `images`                                  | string[] | at least 1, valid URLs                                                                                          |
+| `latitude`, `longitude`                   | number   | optional, together; −90..90 and −180..180                                                                       |
 
 Numbers may be sent as numbers or numeric strings. **201** → created property (`availabilityStatus: "AVAILABLE"`).
+
+**Coordinates:** if `latitude`/`longitude` aren't sent, the server looks the address up with OpenStreetMap Nominatim (`address, city, state`, US only, 5 s timeout). If that fails, the property is saved with `latitude`/`longitude` `null`; geocoding never fails the request.
 **Errors:** 400 validation · 404 `Category not found`.
 
 ### `PUT /api/landlord/properties/:id`
 
 Update any subset of the create fields, plus `availabilityStatus` (`AVAILABLE` \| `RENTED`) to set availability. Empty body → 400.
+Sending `latitude` + `longitude` sets the pin. Otherwise, if `address`, `city` or `division` actually changed, the new address is geocoded (coordinates become `null` if that fails, since the old pin would be wrong).
 **Errors:** 400 validation · 403 `You are not allowed to update this property` · 404 property/category not found.
 
 ### `DELETE /api/landlord/properties/:id`
@@ -427,10 +543,11 @@ All routes below require an **ADMIN** token.
 | `searchTerm`                 | matches `name` or `email` (case-insensitive) |
 | `role`                       | `ADMIN` \| `LANDLORD` \| `TENANT`            |
 | `userStatus`                 | `ACTIVE` \| `BLOCKED`                        |
+| `landlordStatus`             | `PENDING` \| `APPROVED` \| `REJECTED`        |
 | `page`, `limit`, `sortOrder` | see [Pagination](#pagination-sorting)        |
 | `sortBy`                     | `createdAt` \| `name` \| `email`             |
 
-**200** → users without passwords, with `meta`.
+**200** → users without passwords (including `landlordStatus`), with `meta`. Pending landlords: `?role=LANDLORD&landlordStatus=PENDING`.
 
 ### `PATCH /api/admin/users/:id`
 
@@ -442,6 +559,17 @@ Ban or unban a user.
 
 **200** → `{ id, name, email, role, userStatus, updatedAt }`.
 **Errors:** 400 validation · 403 `You cannot block yourself` · 403 `Admin accounts cannot be blocked` · 404 `User not found`.
+
+### `PATCH /api/admin/users/:id/landlord-status`
+
+Approve or reject a landlord. Approval takes effect immediately (the check reads the database on every write request, not the token).
+
+| Field            | Type | Rules                    |
+| ---------------- | ---- | ------------------------ |
+| `landlordStatus` | enum | `APPROVED` \| `REJECTED` |
+
+**200** → `{ id, name, email, role, userStatus, landlordStatus, updatedAt }`.
+**Errors:** 400 validation · 404 `Landlord not found` (no such user, or the user isn't a landlord).
 
 ### `GET /api/admin/properties`
 
@@ -472,6 +600,177 @@ Body as above. **200**. **Errors:** 400 validation · 404 `Category not found` �
 ### `DELETE /api/categories/:id`
 
 **200** with `data: null`. **Errors:** 400 `Cannot delete a category that is assigned to properties` · 404 `Category not found`.
+
+---
+
+## Homepage settings
+
+The admin chooses what the homepage shows. The config is stored under the key `homepage`:
+
+```jsonc
+{
+  "hero": { "propertyIds": ["uuid", "uuid", "uuid"] }, // 0–3, in order
+  "featured": {
+    "enabled": true,
+    "title": "Homes worth the move",
+    "propertyIds": ["uuid"],
+  }, // max 12; title optional
+  "states": {
+    "enabled": true,
+    "items": [{ "state": "New York", "imageUrl": "https://…" }],
+  }, // max 8
+  "propertyTypes": {
+    "enabled": true,
+    "items": [{ "type": "VILLA", "imageUrl": "https://…" }],
+  }, // imageUrl optional
+  "latest": { "enabled": true, "count": 8 }, // 4–16
+  "sectionOrder": [
+    "featured",
+    "states",
+    "propertyTypes",
+    "latest",
+    "statement",
+    "stats",
+    "howItWorks",
+    "whyUs",
+    "reviews",
+    "faq",
+  ],
+}
+```
+
+Rules: no duplicate property ids, states, types or sections; `state` accepts a name or 2-letter code and is saved as the full name; image URLs must be valid URLs.
+
+**Until an admin saves a config**, defaults are used: the newest 3 properties for the hero, the newest 8 featured, the busiest states (up to 8, each with a photo from one of its listings), all four property types and the latest 8. A saved config that no longer validates also falls back to the defaults.
+
+### `GET /api/site-settings/homepage`
+
+No auth. The config **resolved** for rendering, with `isDefault` and `updatedAt`. Cached briefly (`s-maxage=60`).
+
+- `hero.properties`, `featured.properties`: full property objects (same shape as `GET /api/properties`) in the admin's order; ids that no longer exist are dropped.
+- `states.items[]`: `{ state, imageUrl, propertyCount, startingPrice }`, live from **available** properties whose `division` is that state (`startingPrice` is the lowest rent, a string, or `null`).
+- `propertyTypes.items[]`: `{ type, imageUrl, propertyCount }`; `imageUrl` falls back to a photo of a listing of that type.
+- `latest.properties`: the newest `count` properties.
+
+```json
+{
+  "success": true,
+  "message": "Homepage settings retrieved successfully",
+  "data": {
+    "hero": { "properties": [{ "id": "4e25…", "title": "…" }] },
+    "featured": { "enabled": true, "title": null, "properties": [] },
+    "states": {
+      "enabled": true,
+      "items": [
+        {
+          "state": "New York",
+          "imageUrl": "https://…",
+          "propertyCount": 1,
+          "startingPrice": "3200"
+        }
+      ]
+    },
+    "propertyTypes": {
+      "enabled": true,
+      "items": [
+        { "type": "APARTMENT", "imageUrl": "https://…", "propertyCount": 2 }
+      ]
+    },
+    "latest": { "enabled": true, "count": 8, "properties": [] },
+    "sectionOrder": [
+      "statement",
+      "stats",
+      "featured",
+      "states",
+      "propertyTypes",
+      "latest",
+      "howItWorks",
+      "whyUs",
+      "reviews",
+      "faq"
+    ],
+    "isDefault": true,
+    "updatedAt": null
+  }
+}
+```
+
+### `GET /api/admin/site-settings/homepage`
+
+Auth: **ADMIN**. The raw config for the editor (ids, not properties): `{ config, isDefault, updatedAt }`. Before the first save, `config` holds the defaults.
+
+### `PUT /api/admin/site-settings/homepage`
+
+Auth: **ADMIN**. Body: the full config above. Validates and saves it. **200** → `{ config, isDefault: false, updatedAt }`.
+**Errors:** 400 validation (e.g. `hero.propertyIds: Pick at most 3 properties`, `states.items.0.state: State must be a US state (full name or 2-letter code)`).
+
+---
+
+## Notifications
+
+All routes below need a token for **any role** (`TENANT`, `LANDLORD` or `ADMIN`). Users only ever see their own notifications.
+
+Notifications are created automatically **after** the action that triggers them succeeds; a failed notification is logged and never fails that action.
+
+| Trigger                                        | Who is notified         | `type`                                    | `link`                                                        |
+| ---------------------------------------------- | ----------------------- | ----------------------------------------- | ------------------------------------------------------------- |
+| A landlord registers                           | every active admin      | `LANDLORD_REGISTERED`                     | `/dashboard/admin/users?landlordStatus=PENDING`               |
+| Admin approves / rejects a landlord            | that landlord           | `LANDLORD_APPROVED` / `LANDLORD_REJECTED` | `/dashboard/landlord` / `/contact`                            |
+| Tenant creates a rental request                | the property's landlord | `RENTAL_REQUESTED`                        | `/dashboard/landlord/requests`                                |
+| Landlord approves / rejects a request          | the tenant              | `RENTAL_APPROVED` / `RENTAL_REJECTED`     | the pay page / `/dashboard/tenant/requests`                   |
+| Payment becomes `PAID` (webhook or `/confirm`) | tenant and landlord     | `PAYMENT_SUCCESS` / `PAYMENT_RECEIVED`    | `/dashboard/tenant/payments` / `/dashboard/landlord/requests` |
+| Landlord completes a rental                    | the tenant              | `RENTAL_COMPLETED`                        | `/dashboard/tenant/requests`                                  |
+| Tenant posts a review                          | the property's landlord | `REVIEW_RECEIVED`                         | `/dashboard/landlord/reviews`                                 |
+| Admin bans / unbans a user (status changed)    | that user               | `ACCOUNT_BLOCKED` / `ACCOUNT_UNBLOCKED`   | none                                                          |
+
+A payment is notified only by the call that actually marks it paid, so the webhook and `POST /api/payments/confirm` never notify twice.
+
+### `GET /api/notifications`
+
+Your notifications, newest first.
+
+| Query param                  | Rules                                 |
+| ---------------------------- | ------------------------------------- |
+| `unread`                     | `true` lists only unread ones         |
+| `page`, `limit`, `sortOrder` | see [Pagination](#pagination-sorting) |
+| `sortBy`                     | `createdAt`                           |
+
+**200** → `data` is a list of `{ id, userId, type, title, message, link, isRead, createdAt }`; `meta` also has `unreadCount` (all your unread notifications, whatever the filter):
+
+```json
+{
+  "success": true,
+  "message": "Notifications retrieved successfully",
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 3,
+    "totalPage": 1,
+    "unreadCount": 2
+  },
+  "data": [
+    {
+      "id": "6f1c…",
+      "userId": "2e74…",
+      "type": "RENTAL_APPROVED",
+      "title": "Request approved",
+      "message": "Your request for Furnished Studio near Lady Bird Lake was approved. Pay to secure your rental.",
+      "link": "/dashboard/tenant/requests/bbf3…/pay",
+      "isRead": false,
+      "createdAt": "2026-10-30T12:40:11.000Z"
+    }
+  ]
+}
+```
+
+### `PATCH /api/notifications/:id/read`
+
+Marks one of your notifications as read. **200** → the updated notification.
+**Errors:** 400 invalid id · 404 `Notification not found` (missing, or not yours).
+
+### `PATCH /api/notifications/read-all`
+
+Marks all your unread notifications as read. **200** → `{ "updated": <count> }`.
 
 ---
 

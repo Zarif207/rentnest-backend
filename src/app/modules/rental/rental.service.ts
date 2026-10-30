@@ -5,6 +5,7 @@ import AppError from "../../utils/AppError.js";
 import { paginationHelper } from "../../helpers/paginationHelper.js";
 import { TPaginationOptions } from "../../interfaces/pagination.js";
 import { ICreateRentalRequest, TBookingStatus } from "./rental.interface.js";
+import { NotificationServices } from "../notification/notification.service.js";
 
 const createRentalRequest = async (
   tenantId: string,
@@ -57,7 +58,19 @@ const createRentalRequest = async (
     },
     include: {
       property: true,
+      tenant: {
+        select: {
+          name: true,
+        },
+      },
     },
+  });
+
+  await NotificationServices.notify(property.ownerId, {
+    type: "RENTAL_REQUESTED",
+    title: "New rental request",
+    message: `${rentalRequest.tenant.name} wants to rent ${property.title} for ${leaseMonths} ${leaseMonths === 1 ? "month" : "months"}.`,
+    link: "/dashboard/landlord/requests",
   });
 
   return rentalRequest;
@@ -277,6 +290,23 @@ const updateRentalRequestStatus = async (
     },
   });
 
+  await NotificationServices.notify(
+    updatedRequest.tenantId,
+    status === "APPROVED"
+      ? {
+          type: "RENTAL_APPROVED",
+          title: "Request approved",
+          message: `Your request for ${updatedRequest.property.title} was approved. Pay to secure your rental.`,
+          link: `/dashboard/tenant/requests/${updatedRequest.id}/pay`,
+        }
+      : {
+          type: "RENTAL_REJECTED",
+          title: "Request declined",
+          message: `Your request for ${updatedRequest.property.title} was declined by the landlord.`,
+          link: "/dashboard/tenant/requests",
+        },
+  );
+
   return updatedRequest;
 };
 
@@ -358,6 +388,13 @@ const completeRental = async (rentalId: string, landlordId: string) => {
         },
       },
     });
+  });
+
+  await NotificationServices.notify(completedRental.tenantId, {
+    type: "RENTAL_COMPLETED",
+    title: "Rental completed",
+    message: `Your rental of ${completedRental.property.title} is complete. Tell others how it went with a review.`,
+    link: "/dashboard/tenant/requests",
   });
 
   return completedRental;

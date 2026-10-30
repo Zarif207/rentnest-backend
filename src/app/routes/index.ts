@@ -14,6 +14,12 @@ import {
 import { LandlordRoutes } from "../modules/landlord/landlord.route.js";
 import { PaymentRoutes } from "../modules/payment/payment.route.js";
 import { ReviewRoutes } from "../modules/review/review.route.js";
+import { NotificationRoutes } from "../modules/notification/notification.route.js";
+import { FavoriteRoutes } from "../modules/favorite/favorite.route.js";
+import {
+  AdminSiteSettingRoutes,
+  SiteSettingRoutes,
+} from "../modules/siteSetting/siteSetting.route.js";
 
 const router = express.Router();
 
@@ -65,6 +71,22 @@ const moduleRoutes = [
   {
     path: "/reviews",
     route: ReviewRoutes,
+  },
+  {
+    path: "/notifications",
+    route: NotificationRoutes,
+  },
+  {
+    path: "/favorites",
+    route: FavoriteRoutes,
+  },
+  {
+    path: "/site-settings",
+    route: SiteSettingRoutes,
+  },
+  {
+    path: "/admin/site-settings",
+    route: AdminSiteSettingRoutes,
   },
 ];
 

@@ -7,6 +7,7 @@ const userQueryValidationSchema = z.object({
     searchTerm: z.string().optional(),
     role: z.enum(["ADMIN", "LANDLORD", "TENANT"]).optional(),
     userStatus: z.enum(["ACTIVE", "BLOCKED"]).optional(),
+    landlordStatus: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
     ...paginationHelper.paginationQueryFields(userSortableFields),
   }),
 });
@@ -37,8 +38,18 @@ const updateUserStatusValidationSchema = z.object({
   }),
 });
 
+const updateLandlordStatusValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Invalid user ID"),
+  }),
+  body: z.object({
+    landlordStatus: z.enum(["APPROVED", "REJECTED"]),
+  }),
+});
+
 export const UserValidation = {
   userQueryValidationSchema,
   updateMyProfileValidationSchema,
   updateUserStatusValidationSchema,
+  updateLandlordStatusValidationSchema,
 };

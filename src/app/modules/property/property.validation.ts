@@ -1,47 +1,76 @@
 import { z } from "zod";
 import { paginationHelper } from "../../helpers/paginationHelper.js";
+import { normalizeUsState } from "../../constants/usStates.js";
+import { usStateSchema } from "../../validations/usState.validation.js";
 import {
   PROPERTY_TYPES,
   AVAILABILITY_STATUSES,
   propertySortableFields,
 } from "./property.constant.js";
 
+// `division` is a US state, stored as the full name (see usStateSchema).
+const usStateField = usStateSchema();
+
+const latitudeField = z.coerce
+  .number()
+  .min(-90, "Latitude must be between -90 and 90")
+  .max(90, "Latitude must be between -90 and 90");
+
+const longitudeField = z.coerce
+  .number()
+  .min(-180, "Longitude must be between -180 and 180")
+  .max(180, "Longitude must be between -180 and 180");
+
+// A pin needs both values; one on its own is rejected.
+const hasCoordinatePair = (body: { latitude?: number; longitude?: number }) =>
+  (body.latitude === undefined) === (body.longitude === undefined);
+
+const coordinatePairError = {
+  message: "Send latitude and longitude together",
+  path: ["latitude"],
+};
+
 const createPropertyValidationSchema = z.object({
-  body: z.object({
-    title: z.string().min(1, "Title is required"),
-    description: z.string().min(1, "Description is required"),
-    address: z.string().min(1, "Address is required"),
-    city: z.string().min(1, "City is required"),
-    division: z.string().min(1, "Division is required"),
+  body: z
+    .object({
+      title: z.string().min(1, "Title is required"),
+      description: z.string().min(1, "Description is required"),
+      address: z.string().min(1, "Address is required"),
+      city: z.string().min(1, "City is required"),
+      division: usStateField,
 
-    rentAmount: z.coerce
-      .number()
-      .positive("Rent amount must be greater than 0"),
+      rentAmount: z.coerce
+        .number()
+        .positive("Rent amount must be greater than 0"),
 
-    bedrooms: z.coerce
-      .number()
-      .int()
-      .nonnegative("Bedrooms cannot be negative"),
+      bedrooms: z.coerce
+        .number()
+        .int()
+        .nonnegative("Bedrooms cannot be negative"),
 
-    bathrooms: z.coerce
-      .number()
-      .int()
-      .nonnegative("Bathrooms cannot be negative"),
+      bathrooms: z.coerce
+        .number()
+        .int()
+        .nonnegative("Bathrooms cannot be negative"),
 
-    area: z.coerce.number().int().positive("Area must be greater than 0"),
+      area: z.coerce.number().int().positive("Area must be greater than 0"),
 
-    propertyType: z.enum(PROPERTY_TYPES),
+      propertyType: z.enum(PROPERTY_TYPES),
 
-    categoryId: z.string().uuid("Invalid category ID"),
+      categoryId: z.string().uuid("Invalid category ID"),
 
-    amenities: z
-      .array(z.string().min(1, "Amenity cannot be empty"))
-      .min(1, "At least one amenity is required"),
+      amenities: z
+        .array(z.string().min(1, "Amenity cannot be empty"))
+        .min(1, "At least one amenity is required"),
 
-    images: z
-      .array(z.string().url("Each image must be a valid URL"))
-      .min(1, "At least one image is required"),
-  }),
+      images: z
+        .array(z.string().url("Each image must be a valid URL"))
+        .min(1, "At least one image is required"),
+
+      latitude: latitudeField.optional(),
+      longitude: longitudeField.optional(),
+    })
+    .refine(hasCoordinatePair, coordinatePairError),
 });
 
 const updatePropertyValidationSchema = z.object({
@@ -55,7 +84,7 @@ const updatePropertyValidationSchema = z.object({
       description: z.string().min(1).optional(),
       address: z.string().min(1).optional(),
       city: z.string().min(1).optional(),
-      division: z.string().min(1).optional(),
+      division: usStateField.optional(),
 
       rentAmount: z.coerce.number().positive().optional(),
 
@@ -74,10 +103,14 @@ const updatePropertyValidationSchema = z.object({
         .optional(),
 
       images: z.array(z.string().url()).optional(),
+
+      latitude: latitudeField.optional(),
+      longitude: longitudeField.optional(),
     })
     .refine((body) => Object.keys(body).length > 0, {
       message: "Provide at least one field to update",
-    }),
+    })
+    .refine(hasCoordinatePair, coordinatePairError),
 });
 
 const propertyIdValidationSchema = z.object({
@@ -91,7 +124,11 @@ const propertyQueryValidationSchema = z.object({
     .object({
       searchTerm: z.string().optional(),
       city: z.string().optional(),
-      division: z.string().optional(),
+      // Filter by code or name ("MI" finds Michigan); unknown values pass through.
+      division: z
+        .string()
+        .transform((value) => normalizeUsState(value) ?? value)
+        .optional(),
 
       propertyType: z.enum(PROPERTY_TYPES).optional(),
 

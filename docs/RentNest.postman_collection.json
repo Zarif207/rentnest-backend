@@ -406,6 +406,48 @@
           "response": []
         },
         {
+          "name": "Properties on the map",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/properties/map",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "properties", "map"]
+            },
+            "description": "Every property with coordinates (max 1000), trimmed for map pins. Not paginated; cacheable."
+          },
+          "response": []
+        },
+        {
+          "name": "States with properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/properties/states",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "properties", "states"]
+            },
+            "description": "Every state that has properties, busiest first, with counts."
+          },
+          "response": []
+        },
+        {
+          "name": "Homepage settings (resolved)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/site-settings/homepage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "site-settings", "homepage"]
+            },
+            "description": "What the homepage renders: properties, live state/type counts, section order. Defaults until an admin saves a config."
+          },
+          "response": []
+        },
+        {
           "name": "Get property by ID",
           "request": {
             "method": "GET",
@@ -587,7 +629,8 @@
               "raw": "{{baseUrl}}/api/landlord/properties",
               "host": ["{{baseUrl}}"],
               "path": ["api", "landlord", "properties"]
-            }
+            },
+            "description": "division accepts a state name or code (\"tx\" → \"Texas\"). Optional latitude + longitude set the map pin; without them the address is geocoded server-side."
           },
           "response": []
         },
@@ -1250,6 +1293,125 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "List my favorites",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/favorites?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "favorites"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List my favorite property IDs",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/favorites/ids",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "favorites", "ids"]
+            },
+            "description": "Just the property ids, for filling in heart icons."
+          },
+          "response": []
+        },
+        {
+          "name": "Save a property to favorites",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{propertyId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/favorites",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "favorites"]
+            },
+            "description": "Idempotent: 201 when saved, 200 if it was already saved, 404 if the property does not exist."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove a property from favorites",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/favorites/{{propertyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "favorites", "{{propertyId}}"]
+            },
+            "description": "Idempotent: always 200; data.removed says whether it was saved."
+          },
+          "response": []
         }
       ]
     },
@@ -1326,6 +1488,12 @@
                   "key": "userStatus",
                   "value": "ACTIVE",
                   "disabled": true
+                },
+                {
+                  "key": "landlordStatus",
+                  "value": "PENDING",
+                  "disabled": true,
+                  "description": "PENDING | APPROVED | REJECTED"
                 }
               ]
             }
@@ -1404,6 +1572,140 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "admin", "users", "{{userId}}"]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "List pending landlords",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.success && json.data[0]) pm.collectionVariables.set(\"landlordId\", json.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users?role=LANDLORD&landlordStatus=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "LANDLORD"
+                },
+                {
+                  "key": "landlordStatus",
+                  "value": "PENDING"
+                }
+              ]
+            },
+            "description": "Landlords waiting for approval. Saves the first one as {{landlordId}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve landlord",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"landlordStatus\": \"APPROVED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{landlordId}}/landlord-status",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{{landlordId}}",
+                "landlord-status"
+              ]
+            },
+            "description": "Lets the landlord create, edit and delete properties and manage requests. 404 if the user is not a landlord."
+          },
+          "response": []
+        },
+        {
+          "name": "Reject landlord",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"landlordStatus\": \"REJECTED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{landlordId}}/landlord-status",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{{landlordId}}",
+                "landlord-status"
+              ]
+            },
+            "description": "The landlord keeps read access but every write action returns 403."
           },
           "response": []
         },
@@ -1610,6 +1912,196 @@
               "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "categories", "{{categoryId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get homepage config (editor)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/site-settings/homepage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "site-settings", "homepage"]
+            },
+            "description": "Raw config with ids, plus isDefault and updatedAt."
+          },
+          "response": []
+        },
+        {
+          "name": "Save homepage config",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hero\": {\n    \"propertyIds\": [\n      \"{{propertyId}}\"\n    ]\n  },\n  \"featured\": {\n    \"enabled\": true,\n    \"title\": \"Homes worth the move\",\n    \"propertyIds\": [\n      \"{{propertyId}}\"\n    ]\n  },\n  \"states\": {\n    \"enabled\": true,\n    \"items\": [\n      {\n        \"state\": \"New York\",\n        \"imageUrl\": \"https://images.unsplash.com/photo-1496588152823-86ff7695e68f\"\n      }\n    ]\n  },\n  \"propertyTypes\": {\n    \"enabled\": true,\n    \"items\": [\n      {\n        \"type\": \"APARTMENT\"\n      },\n      {\n        \"type\": \"HOUSE\"\n      },\n      {\n        \"type\": \"STUDIO\"\n      },\n      {\n        \"type\": \"VILLA\"\n      }\n    ]\n  },\n  \"latest\": {\n    \"enabled\": true,\n    \"count\": 8\n  },\n  \"sectionOrder\": [\n    \"statement\",\n    \"stats\",\n    \"featured\",\n    \"states\",\n    \"propertyTypes\",\n    \"latest\",\n    \"howItWorks\",\n    \"whyUs\",\n    \"reviews\",\n    \"faq\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/site-settings/homepage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "site-settings", "homepage"]
+            },
+            "description": "Full config. hero max 3, featured max 12, states max 8 (name or code), latest.count 4–16, no duplicates."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "description": "Any signed-in role. Uses {{token}} (set by any of the Login requests).",
+      "item": [
+        {
+          "name": "List my notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.success && json.data[0]) pm.collectionVariables.set(\"notificationId\", json.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "meta.unreadCount = all unread notifications. Saves the first one as {{notificationId}}."
+          },
+          "response": []
+        },
+        {
+          "name": "List unread notifications",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications?unread=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications"],
+              "query": [
+                {
+                  "key": "unread",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark notification as read",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "{{notificationId}}", "read"]
+            },
+            "description": "404 if it is not yours."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark all as read",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "read-all"]
             }
           },
           "response": []
@@ -1938,6 +2430,16 @@
     },
     {
       "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "landlordId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notificationId",
       "value": "",
       "type": "string"
     }

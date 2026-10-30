@@ -4,6 +4,7 @@ import prisma from "../../../lib/prisma.js";
 import AppError from "../../utils/AppError.js";
 import stripe from "../../../config/stripe.js";
 import config from "../../../config/index.js";
+import { NotificationServices } from "../notification/notification.service.js";
 
 const paymentInclude = {
   booking: {
@@ -51,6 +52,39 @@ const createStripeSession = (booking: {
     success_url: buildSuccessUrl(),
     cancel_url: config.client_cancel_url,
   });
+};
+
+/** Tells the tenant their payment went through and the landlord they were paid. */
+const notifyPaymentPaid = async (bookingId: string) => {
+  try {
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        tenantId: true,
+        totalRent: true,
+        property: { select: { title: true, ownerId: true } },
+        tenant: { select: { name: true } },
+      },
+    });
+    if (!booking) return;
+
+    const amount = `$${Number(booking.totalRent).toLocaleString("en-US")}`;
+
+    await NotificationServices.notify(booking.tenantId, {
+      type: "PAYMENT_SUCCESS",
+      title: "Payment successful",
+      message: `Your payment of ${amount} for ${booking.property.title} went through. Your rental is now active.`,
+      link: "/dashboard/tenant/payments",
+    });
+    await NotificationServices.notify(booking.property.ownerId, {
+      type: "PAYMENT_RECEIVED",
+      title: "Payment received",
+      message: `${booking.tenant.name} paid ${amount} for ${booking.property.title}.`,
+      link: "/dashboard/landlord/requests",
+    });
+  } catch (error) {
+    console.error("Failed to send payment notifications", error);
+  }
 };
 
 /**
@@ -105,6 +139,12 @@ const markSessionPaid = async (session: Stripe.Checkout.Session) => {
 
     return true;
   });
+
+  // Only the call that actually processed the payment notifies, so the
+  // webhook and /payments/confirm never send duplicates.
+  if (processed) {
+    await notifyPaymentPaid(payment.bookingId);
+  }
 
   return { processed };
 };

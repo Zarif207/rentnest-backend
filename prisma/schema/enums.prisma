@@ -9,6 +9,13 @@ enum UserStatus {
   BLOCKED
 }
 
+// Only landlords have one: PENDING until an admin approves or rejects them.
+enum LandlordStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum PropertyType {
   APARTMENT
   HOUSE
@@ -42,4 +49,19 @@ enum PaymentStatus {
   PENDING
   PAID
   FAILED
+}
+
+enum NotificationType {
+  LANDLORD_REGISTERED
+  LANDLORD_APPROVED
+  LANDLORD_REJECTED
+  RENTAL_REQUESTED
+  RENTAL_APPROVED
+  RENTAL_REJECTED
+  PAYMENT_RECEIVED
+  PAYMENT_SUCCESS
+  RENTAL_COMPLETED
+  REVIEW_RECEIVED
+  ACCOUNT_BLOCKED
+  ACCOUNT_UNBLOCKED
 }
