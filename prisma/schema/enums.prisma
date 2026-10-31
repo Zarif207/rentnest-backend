@@ -23,9 +23,17 @@ enum PropertyType {
   VILLA
 }
 
+// RENT homes go AVAILABLE -> RENTED; SALE homes AVAILABLE -> UNDER_CONTRACT -> SOLD.
 enum AvailabilityStatus {
   AVAILABLE
   RENTED
+  UNDER_CONTRACT
+  SOLD
+}
+
+enum ListingType {
+  RENT
+  SALE
 }
 
 enum BookingStatus {
@@ -64,4 +72,32 @@ enum NotificationType {
   REVIEW_RECEIVED
   ACCOUNT_BLOCKED
   ACCOUNT_UNBLOCKED
+  OFFER_RECEIVED
+  OFFER_ACCEPTED
+  OFFER_REJECTED
+  OFFER_COUNTERED
+  OFFER_WITHDRAWN
+  DEPOSIT_RECEIVED
+  DEPOSIT_PAID
+  SALE_COMPLETED
+}
+
+// PENDING -> (owner) COUNTERED | ACCEPTED | REJECTED; COUNTERED -> (buyer)
+// ACCEPTED; ACCEPTED -> (deposit) DEPOSIT_PAID -> (owner) COMPLETED. Open
+// offers can be WITHDRAWN by the buyer, and EXPIRE after 7 quiet days.
+enum OfferStatus {
+  PENDING
+  COUNTERED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  DEPOSIT_PAID
+  COMPLETED
+  EXPIRED
+}
+
+enum OfferFinancing {
+  CASH
+  MORTGAGE
+  OTHER
 }

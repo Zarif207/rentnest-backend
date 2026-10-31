@@ -7,6 +7,7 @@ export const propertySearchableFields = [
 
 export const propertyFilterableFields = [
   "searchTerm",
+  "listingType",
   "city",
   "division",
   "propertyType",
@@ -17,8 +18,10 @@ export const propertyFilterableFields = [
   "maxPrice",
 ];
 
+// "price" sorts by rentAmount for RENT and salePrice for SALE.
 export const propertySortableFields = [
   "createdAt",
+  "price",
   "rentAmount",
   "area",
   "bedrooms",
@@ -32,4 +35,15 @@ export const PROPERTY_TYPES = [
   "VILLA",
 ] as const;
 
-export const AVAILABILITY_STATUSES = ["AVAILABLE", "RENTED"] as const;
+export const LISTING_TYPES = ["RENT", "SALE"] as const;
+
+export const AVAILABILITY_STATUSES = [
+  "AVAILABLE",
+  "RENTED",
+  "UNDER_CONTRACT",
+  "SOLD",
+] as const;
+
+// The statuses a landlord may set by hand on a rental. Sale homes move
+// through UNDER_CONTRACT and SOLD by the offer flow only.
+export const RENTAL_AVAILABILITY_STATUSES = ["AVAILABLE", "RENTED"] as const;

@@ -5,6 +5,10 @@ import AppError from "../../utils/AppError.js";
 import stripe from "../../../config/stripe.js";
 import config from "../../../config/index.js";
 import { NotificationServices } from "../notification/notification.service.js";
+import {
+  isDepositSession,
+  OfferPaymentServices,
+} from "../offer/offerPayment.service.js";
 
 const paymentInclude = {
   booking: {
@@ -318,14 +322,20 @@ const handleStripeWebhook = async (payload: Buffer, signature: string) => {
     );
   }
 
+  // Sale deposits (metadata.type "sale_deposit") have their own handlers;
+  // every other session is a rental payment, handled exactly as before.
   switch (event.type) {
     case "checkout.session.completed":
     case "checkout.session.async_payment_succeeded":
-      return markSessionPaid(event.data.object);
+      return isDepositSession(event.data.object)
+        ? OfferPaymentServices.markDepositPaid(event.data.object)
+        : markSessionPaid(event.data.object);
 
     case "checkout.session.expired":
     case "checkout.session.async_payment_failed":
-      return markSessionFailed(event.data.object);
+      return isDepositSession(event.data.object)
+        ? OfferPaymentServices.markDepositFailed(event.data.object)
+        : markSessionFailed(event.data.object);
 
     default:
       return { processed: false };

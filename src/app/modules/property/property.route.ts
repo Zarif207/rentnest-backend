@@ -15,8 +15,16 @@ router.get(
 );
 
 // Before "/:id", which would otherwise reject these as invalid ids.
-router.get("/map", PropertyControllers.getMapProperties);
-router.get("/states", PropertyControllers.getPropertyStates);
+router.get(
+  "/map",
+  validateRequest(PropertyValidations.listingTypeQueryValidationSchema),
+  PropertyControllers.getMapProperties,
+);
+router.get(
+  "/states",
+  validateRequest(PropertyValidations.listingTypeQueryValidationSchema),
+  PropertyControllers.getPropertyStates,
+);
 
 router.get(
   "/:id",

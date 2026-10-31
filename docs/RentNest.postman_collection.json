@@ -406,6 +406,51 @@
           "response": []
         },
         {
+          "name": "List homes for sale",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/properties?listingType=SALE&sortBy=price&sortOrder=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "properties"],
+              "query": [
+                {
+                  "key": "listingType",
+                  "value": "SALE"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "price"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Only SALE listings, cheapest first. Saves the first one as {{salePropertyId}}. Sold homes are hidden unless availabilityStatus=SOLD."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.success) {",
+                  "  if (json.data[0] && json.data[0].id !== undefined) pm.collectionVariables.set(\"salePropertyId\", json.data[0] && json.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Properties on the map",
           "request": {
             "method": "GET",
@@ -633,6 +678,58 @@
             "description": "division accepts a state name or code (\"tx\" → \"Texas\"). Optional latitude + longitude set the map pin; without them the address is geocoded server-side."
           },
           "response": []
+        },
+        {
+          "name": "Create home for sale",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/properties",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "properties"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{landlordToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Craftsman Bungalow in Hyde Park\",\n  \"description\": \"Three-bedroom bungalow with a deep front porch and a renovated kitchen.\",\n  \"address\": \"4410 Avenue B\",\n  \"city\": \"Austin\",\n  \"division\": \"TX\",\n  \"listingType\": \"SALE\",\n  \"salePrice\": 685000,\n  \"bedrooms\": 3,\n  \"bathrooms\": 2,\n  \"area\": 1640,\n  \"propertyType\": \"HOUSE\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"amenities\": [\n    \"garden\",\n    \"parking\"\n  ],\n  \"images\": [\n    \"https://images.unsplash.com/photo-1568605114967-8130f3a36994\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "listingType SALE needs salePrice (rentAmount is stored as null)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.success) {",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set(\"salePropertyId\", json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Update property",
@@ -1981,6 +2078,458 @@
       ]
     },
     {
+      "name": "Buy & Sell",
+      "description": "Offers and earnest-money deposits for SALE listings. Run 'List homes for sale' (Public) first so {{salePropertyId}} is set.",
+      "item": [
+        {
+          "name": "Make an offer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/offers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "offers"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{salePropertyId}}\",\n  \"offerAmount\": 860000,\n  \"financing\": \"MORTGAGE\",\n  \"message\": \"We love the porch.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.success) {",
+                  "  if (json.data.id !== undefined) pm.collectionVariables.set(\"offerId\", json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List my offers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/offers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "offers"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get offer by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/offers/{{offerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "offers", "{{offerId}}"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List offers on my homes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/offers?status=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "offers"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{landlordToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Counter an offer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/offers/{{offerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "offers", "{{offerId}}"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{landlordToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"COUNTER\",\n  \"counterAmount\": 880000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Accept the counteroffer",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/offers/{{offerId}}/accept-counter",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "offers", "{{offerId}}", "accept-counter"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Accept an offer (owner)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/offers/{{offerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "offers", "{{offerId}}"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{landlordToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"ACCEPT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Use instead of countering: accepts a PENDING offer at its offerAmount."
+          },
+          "response": []
+        },
+        {
+          "name": "Reject an offer (owner)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/offers/{{offerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "offers", "{{offerId}}"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{landlordToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"REJECT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Pay deposit (Stripe checkout session)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/offers/{{offerId}}/deposit",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "offers", "{{offerId}}", "deposit"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Open {{checkoutUrl}} and pay with test card 4242 4242 4242 4242, then run 'Confirm deposit'."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.success) {",
+                  "  if (json.data.sessionId !== undefined) pm.collectionVariables.set(\"depositSessionId\", json.data.sessionId);",
+                  "  if (json.data.checkoutUrl !== undefined) pm.collectionVariables.set(\"checkoutUrl\", json.data.checkoutUrl);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm deposit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/offers/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "offers", "confirm"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{depositSessionId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List my deposits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/offers/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "offers", "payments"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Withdraw an offer",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/offers/{{offerId}}/withdraw",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "offers", "{{offerId}}", "withdraw"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tenantToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Complete the sale (owner)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/offers/{{offerId}}/complete-sale",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "landlord",
+                "offers",
+                "{{offerId}}",
+                "complete-sale"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{landlordToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Only after the deposit is paid: offer COMPLETED, home SOLD."
+          },
+          "response": []
+        },
+        {
+          "name": "List all offers (admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/offers?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "offers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Notifications",
       "description": "Any signed-in role. Uses {{token}} (set by any of the Login requests).",
       "item": [
@@ -2440,6 +2989,21 @@
     },
     {
       "key": "notificationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "salePropertyId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "offerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "depositSessionId",
       "value": "",
       "type": "string"
     }

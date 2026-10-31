@@ -5,6 +5,8 @@ import { usStateSchema } from "../../validations/usState.validation.js";
 import {
   PROPERTY_TYPES,
   AVAILABILITY_STATUSES,
+  LISTING_TYPES,
+  RENTAL_AVAILABILITY_STATUSES,
   propertySortableFields,
 } from "./property.constant.js";
 
@@ -30,6 +32,14 @@ const coordinatePairError = {
   path: ["latitude"],
 };
 
+const rentAmountField = z.coerce
+  .number()
+  .positive("Rent amount must be greater than 0");
+
+const salePriceField = z.coerce
+  .number()
+  .positive("Sale price must be greater than 0");
+
 const createPropertyValidationSchema = z.object({
   body: z
     .object({
@@ -39,9 +49,10 @@ const createPropertyValidationSchema = z.object({
       city: z.string().min(1, "City is required"),
       division: usStateField,
 
-      rentAmount: z.coerce
-        .number()
-        .positive("Rent amount must be greater than 0"),
+      // RENT needs rentAmount, SALE needs salePrice; the other one is dropped.
+      listingType: z.enum(LISTING_TYPES).default("RENT"),
+      rentAmount: rentAmountField.optional(),
+      salePrice: salePriceField.optional(),
 
       bedrooms: z.coerce
         .number()
@@ -70,7 +81,28 @@ const createPropertyValidationSchema = z.object({
       latitude: latitudeField.optional(),
       longitude: longitudeField.optional(),
     })
-    .refine(hasCoordinatePair, coordinatePairError),
+    .refine(hasCoordinatePair, coordinatePairError)
+    .superRefine((body, ctx) => {
+      if (body.listingType === "RENT" && body.rentAmount === undefined) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Rent amount is required for a rental listing",
+          path: ["rentAmount"],
+        });
+      }
+      if (body.listingType === "SALE" && body.salePrice === undefined) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Sale price is required for a listing for sale",
+          path: ["salePrice"],
+        });
+      }
+    })
+    .transform(({ rentAmount, salePrice, ...body }) =>
+      body.listingType === "SALE"
+        ? { ...body, salePrice }
+        : { ...body, rentAmount },
+    ),
 });
 
 const updatePropertyValidationSchema = z.object({
@@ -86,7 +118,11 @@ const updatePropertyValidationSchema = z.object({
       city: z.string().min(1).optional(),
       division: usStateField.optional(),
 
-      rentAmount: z.coerce.number().positive().optional(),
+      // Checked against the listing in the service (type changes, which
+      // price applies).
+      listingType: z.enum(LISTING_TYPES).optional(),
+      rentAmount: rentAmountField.optional(),
+      salePrice: salePriceField.optional(),
 
       bedrooms: z.coerce.number().int().nonnegative().optional(),
 
@@ -95,7 +131,7 @@ const updatePropertyValidationSchema = z.object({
       area: z.coerce.number().int().positive().optional(),
 
       propertyType: z.enum(PROPERTY_TYPES).optional(),
-      availabilityStatus: z.enum(AVAILABILITY_STATUSES).optional(),
+      availabilityStatus: z.enum(RENTAL_AVAILABILITY_STATUSES).optional(),
       categoryId: z.string().uuid("Invalid category ID").optional(),
 
       amenities: z
@@ -123,6 +159,7 @@ const propertyQueryValidationSchema = z.object({
   query: z
     .object({
       searchTerm: z.string().optional(),
+      listingType: z.enum(LISTING_TYPES).optional(),
       city: z.string().optional(),
       // Filter by code or name ("MI" finds Michigan); unknown values pass through.
       division: z
@@ -162,9 +199,17 @@ const propertyQueryValidationSchema = z.object({
     ),
 });
 
+// GET /properties/map and /properties/states.
+const listingTypeQueryValidationSchema = z.object({
+  query: z.object({
+    listingType: z.enum(LISTING_TYPES).optional(),
+  }),
+});
+
 export const PropertyValidations = {
   createPropertyValidationSchema,
   updatePropertyValidationSchema,
   propertyIdValidationSchema,
   propertyQueryValidationSchema,
+  listingTypeQueryValidationSchema,
 };

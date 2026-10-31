@@ -1,5 +1,8 @@
+export type TListingType = "RENT" | "SALE";
+
 export type TPropertyFilters = {
   searchTerm?: string;
+  listingType?: TListingType;
   city?: string;
   division?: string;
   propertyType?: string;
@@ -11,6 +14,11 @@ export type TPropertyFilters = {
   ownerId?: string;
 };
 
+export type TPropertyListOptions = {
+  // Public lists leave SOLD homes out unless they're asked for by status.
+  hideSold?: boolean;
+};
+
 export type TCreateProperty = {
   title: string;
   description: string;
@@ -18,7 +26,9 @@ export type TCreateProperty = {
   city: string;
   division: string;
 
-  rentAmount: number;
+  listingType: TListingType;
+  rentAmount?: number;
+  salePrice?: number;
   bedrooms: number;
   bathrooms: number;
   area: number;
@@ -40,7 +50,9 @@ export type TUpdateProperty = {
   address?: string;
   city?: string;
   division?: string;
+  listingType?: TListingType;
   rentAmount?: number;
+  salePrice?: number;
   bedrooms?: number;
   bathrooms?: number;
   area?: number;

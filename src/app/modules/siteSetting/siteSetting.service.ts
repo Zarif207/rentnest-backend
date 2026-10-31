@@ -133,24 +133,55 @@ const resolveConfig = async (config: THomepageConfig) => {
         take: config.latest.count,
       }),
       prisma.property.groupBy({
-        by: ["division"],
+        by: ["division", "listingType"],
         where: { availabilityStatus: "AVAILABLE" },
         _count: { _all: true },
-        _min: { rentAmount: true },
+        _min: { rentAmount: true, salePrice: true },
       }),
       prisma.property.groupBy({
-        by: ["propertyType"],
+        by: ["propertyType", "listingType"],
         _count: { _all: true },
       }),
     ]);
 
-  // Available listings per state (case-insensitive on the stored name).
-  const stateStats = new Map(
-    availableByState.map((group) => [
-      group.division.toLowerCase(),
-      { count: group._count._all, minRent: group._min.rentAmount },
-    ]),
-  );
+  // Available listings per state (case-insensitive on the stored name), with
+  // rent and sale kept apart: their counts and starting prices differ.
+  type TListingStats = {
+    count: number;
+    startingPrice: Prisma.Decimal | null;
+  };
+  const stateStats = new Map<
+    string,
+    { rent: TListingStats; sale: TListingStats }
+  >();
+  for (const group of availableByState) {
+    const key = group.division.toLowerCase();
+    const stats = stateStats.get(key) ?? {
+      rent: { count: 0, startingPrice: null },
+      sale: { count: 0, startingPrice: null },
+    };
+    if (group.listingType === "SALE") {
+      stats.sale = {
+        count: group._count._all,
+        startingPrice: group._min.salePrice,
+      };
+    } else {
+      stats.rent = {
+        count: group._count._all,
+        startingPrice: group._min.rentAmount,
+      };
+    }
+    stateStats.set(key, stats);
+  }
+
+  const typeCount = (type: string, listingType?: "RENT" | "SALE") =>
+    countsByType
+      .filter(
+        (group) =>
+          group.propertyType === type &&
+          (!listingType || group.listingType === listingType),
+      )
+      .reduce((sum, group) => sum + group._count._all, 0);
 
   // A type without an admin image falls back to a photo of one of its listings.
   const typeItems = await Promise.all(
@@ -167,9 +198,9 @@ const resolveConfig = async (config: THomepageConfig) => {
       return {
         type: item.type,
         imageUrl,
-        propertyCount:
-          countsByType.find((group) => group.propertyType === item.type)?._count
-            ._all ?? 0,
+        propertyCount: typeCount(item.type),
+        rentCount: typeCount(item.type, "RENT"),
+        saleCount: typeCount(item.type, "SALE"),
       };
     }),
   );
@@ -185,11 +216,16 @@ const resolveConfig = async (config: THomepageConfig) => {
       enabled: config.states.enabled,
       items: config.states.items.map((item) => {
         const stats = stateStats.get(item.state.toLowerCase());
+        const rent = stats?.rent ?? { count: 0, startingPrice: null };
+        const sale = stats?.sale ?? { count: 0, startingPrice: null };
         return {
           state: item.state,
           imageUrl: item.imageUrl,
-          propertyCount: stats?.count ?? 0,
-          startingPrice: stats?.minRent ?? null,
+          // Kept as before (rentals) for clients that predate sale listings.
+          propertyCount: rent.count,
+          startingPrice: rent.startingPrice,
+          rent,
+          sale,
         };
       }),
     },

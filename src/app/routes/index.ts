@@ -12,6 +12,11 @@ import {
   AdminRentalRoutes,
 } from "../modules/rental/rental.route.js";
 import { LandlordRoutes } from "../modules/landlord/landlord.route.js";
+import {
+  AdminOfferRoutes,
+  LandlordOfferRoutes,
+  OfferRoutes,
+} from "../modules/offer/offer.route.js";
 import { PaymentRoutes } from "../modules/payment/payment.route.js";
 import { ReviewRoutes } from "../modules/review/review.route.js";
 import { NotificationRoutes } from "../modules/notification/notification.route.js";
@@ -61,8 +66,20 @@ const moduleRoutes = [
     route: RentalRoutes,
   },
   {
+    path: "/landlord/offers",
+    route: LandlordOfferRoutes,
+  },
+  {
     path: "/landlord",
     route: LandlordRoutes,
+  },
+  {
+    path: "/offers",
+    route: OfferRoutes,
+  },
+  {
+    path: "/admin/offers",
+    route: AdminOfferRoutes,
   },
   {
     path: "/payments",

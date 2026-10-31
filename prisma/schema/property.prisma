@@ -10,10 +10,13 @@ model Property {
   latitude  Float?
   longitude Float?
 
-  rentAmount Decimal
-  bedrooms   Int
-  bathrooms  Int
-  area       Int
+  // RENT listings have rentAmount (monthly); SALE listings have salePrice and no rent.
+  listingType ListingType @default(RENT)
+  rentAmount  Decimal?
+  salePrice   Decimal?
+  bedrooms    Int
+  bathrooms   Int
+  area        Int
 
   propertyType       PropertyType
   availabilityStatus AvailabilityStatus @default(AVAILABLE)
@@ -30,6 +33,7 @@ model Property {
   bookings  Booking[]
   reviews   Review[]
   favorites Favorite[]
+  offers    PurchaseOffer[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -38,4 +42,5 @@ model Property {
   @@index([propertyType])
   @@index([rentAmount])
   @@index([ownerId])
+  @@index([listingType])
 }

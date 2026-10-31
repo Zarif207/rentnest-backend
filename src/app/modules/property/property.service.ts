@@ -8,9 +8,45 @@ import { propertySearchableFields } from "./property.constant.js";
 import { geocoder } from "../../helpers/geocoder.js";
 import {
   TCreateProperty,
+  TListingType,
   TPropertyFilters,
+  TPropertyListOptions,
   TUpdateProperty,
 } from "./property.interface.js";
+
+/** A listing's price range: rentAmount for RENT, salePrice for SALE. */
+const priceCondition = (
+  listingType: TListingType,
+  minPrice?: number,
+  maxPrice?: number,
+): Prisma.PropertyWhereInput => {
+  const range = {
+    ...(minPrice !== undefined ? { gte: minPrice } : {}),
+    ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
+  };
+  return listingType === "SALE"
+    ? { listingType, salePrice: range }
+    : { listingType, rentAmount: range };
+};
+
+/**
+ * Sort order. "price" means rentAmount for RENT and salePrice for SALE; when
+ * both types are listed, rentals come first (by rent), then homes for sale
+ * (by price), since the two prices aren't comparable.
+ */
+const buildOrderBy = (
+  sortBy: string,
+  sortOrder: Prisma.SortOrder,
+  listingType?: TListingType,
+): Prisma.PropertyOrderByWithRelationInput[] => {
+  if (sortBy !== "price") return [{ [sortBy]: sortOrder }];
+  if (listingType === "SALE") return [{ salePrice: sortOrder }];
+  if (listingType === "RENT") return [{ rentAmount: sortOrder }];
+  return [
+    { rentAmount: { sort: sortOrder, nulls: "last" } },
+    { salePrice: { sort: sortOrder, nulls: "last" } },
+  ];
+};
 
 const createProperty = async (payload: TCreateProperty, ownerId: string) => {
   const category = await prisma.category.findUnique({
@@ -38,7 +74,10 @@ const createProperty = async (payload: TCreateProperty, ownerId: string) => {
       city: payload.city,
       division: payload.division,
 
-      rentAmount: payload.rentAmount,
+      // Validation keeps only the price that matches the listing type.
+      listingType: payload.listingType,
+      rentAmount: payload.listingType === "RENT" ? payload.rentAmount : null,
+      salePrice: payload.listingType === "SALE" ? payload.salePrice : null,
       bedrooms: payload.bedrooms,
       bathrooms: payload.bathrooms,
       area: payload.area,
@@ -59,6 +98,7 @@ const createProperty = async (payload: TCreateProperty, ownerId: string) => {
 const getAllProperties = async (
   filters: TPropertyFilters,
   options: TPaginationOptions,
+  listOptions: TPropertyListOptions = {},
 ) => {
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelper.calculatePagination(options);
@@ -66,6 +106,7 @@ const getAllProperties = async (
   const {
     ownerId,
     searchTerm,
+    listingType,
     city,
     division,
     propertyType,
@@ -80,6 +121,10 @@ const getAllProperties = async (
 
   if (ownerId) {
     andConditions.push({ ownerId });
+  }
+
+  if (listingType) {
+    andConditions.push({ listingType });
   }
 
   // Search
@@ -141,15 +186,23 @@ const getAllProperties = async (
     andConditions.push({
       availabilityStatus: availabilityStatus as $Enums.AvailabilityStatus,
     });
+  } else if (listOptions.hideSold) {
+    // Sold homes stay reachable by link, but public lists skip them.
+    andConditions.push({ availabilityStatus: { not: "SOLD" } });
   }
 
+  // The price range applies to rent for RENT and to the price for SALE.
   if (minPrice !== undefined || maxPrice !== undefined) {
-    andConditions.push({
-      rentAmount: {
-        ...(minPrice !== undefined ? { gte: minPrice } : {}),
-        ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
-      },
-    });
+    andConditions.push(
+      listingType
+        ? priceCondition(listingType, minPrice, maxPrice)
+        : {
+            OR: [
+              priceCondition("RENT", minPrice, maxPrice),
+              priceCondition("SALE", minPrice, maxPrice),
+            ],
+          },
+    );
   }
 
   const whereConditions: Prisma.PropertyWhereInput =
@@ -178,9 +231,7 @@ const getAllProperties = async (
           },
         },
       },
-      orderBy: {
-        [sortBy]: sortOrder,
-      },
+      orderBy: buildOrderBy(sortBy, sortOrder as Prisma.SortOrder, listingType),
       skip,
       take: limit,
     }),
@@ -257,7 +308,57 @@ const updateProperty = async (
     }
   }
 
-  const { latitude, longitude, ...changes } = payload;
+  // A type change would strand rental requests or offers made under the old type.
+  const listingType = payload.listingType ?? property.listingType;
+  if (listingType !== property.listingType) {
+    const [bookings, offers] = await Promise.all([
+      prisma.booking.count({ where: { propertyId: id } }),
+      prisma.purchaseOffer.count({ where: { propertyId: id } }),
+    ]);
+    if (bookings + offers > 0) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        "The listing type can't be changed once a home has rental requests or offers",
+      );
+    }
+  }
+
+  const {
+    latitude,
+    longitude,
+    rentAmount,
+    salePrice,
+    availabilityStatus,
+    ...changes
+  } = payload;
+
+  // Only the price that matches the listing type is stored; the other is null.
+  let prices: { rentAmount?: number | null; salePrice?: number | null };
+  if (listingType === "RENT") {
+    if (rentAmount === undefined && property.rentAmount === null) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Rent amount is required for a rental listing",
+      );
+    }
+    prices = { rentAmount, salePrice: null };
+  } else {
+    if (salePrice === undefined && property.salePrice === null) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Sale price is required for a listing for sale",
+      );
+    }
+    prices = { salePrice, rentAmount: null };
+  }
+
+  // Homes for sale go under contract and sold through the offer flow only.
+  if (availabilityStatus !== undefined && listingType === "SALE") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "A home for sale changes status through its offers, not by hand",
+    );
+  }
 
   // Coordinates: a pin sent by the landlord wins; otherwise re-geocode only
   // when the address, city or state actually changed (null if that fails,
@@ -286,31 +387,39 @@ const updateProperty = async (
     },
     data: {
       ...changes,
+      ...prices,
       ...coordinates,
 
       propertyType: payload.propertyType
         ? (payload.propertyType as $Enums.PropertyType)
         : undefined,
 
-      availabilityStatus: payload.availabilityStatus
-        ? (payload.availabilityStatus as $Enums.AvailabilityStatus)
-        : undefined,
+      // A new listing type starts out AVAILABLE (a hand-set RENTED means
+      // nothing for a home for sale).
+      availabilityStatus: (availabilityStatus ??
+        (listingType !== property.listingType ? "AVAILABLE" : undefined)) as
+        $Enums.AvailabilityStatus | undefined,
     },
   });
 
   return result;
 };
 
-/** Every state that has properties, busiest first (for the admin state picker). */
-const getPropertyStates = async () => {
+/**
+ * Every state that has properties, busiest first (for the admin state picker
+ * and state landing pages); only one listing type's homes when it's given.
+ */
+const getPropertyStates = async (listingType?: TListingType) => {
+  const where = listingType ? { listingType } : {};
   const [all, available] = await Promise.all([
     prisma.property.groupBy({
       by: ["division"],
+      where,
       _count: { _all: true },
     }),
     prisma.property.groupBy({
       by: ["division"],
-      where: { availabilityStatus: "AVAILABLE" },
+      where: { ...where, availabilityStatus: "AVAILABLE" },
       _count: { _all: true },
     }),
   ]);
@@ -333,19 +442,26 @@ const getPropertyStates = async () => {
 
 const MAP_LIMIT = 1000;
 
-/** Every property with coordinates, trimmed to what a map pin and popup need. */
-const getMapProperties = async () => {
+/**
+ * Every listed property with coordinates (sold homes left out), trimmed to
+ * what a map pin and popup need. `price` is whichever price applies.
+ */
+const getMapProperties = async (listingType?: TListingType) => {
   const properties = await prisma.property.findMany({
     where: {
       latitude: { not: null },
       longitude: { not: null },
+      availabilityStatus: { not: "SOLD" },
+      ...(listingType ? { listingType } : {}),
     },
     select: {
       id: true,
       title: true,
       latitude: true,
       longitude: true,
+      listingType: true,
       rentAmount: true,
+      salePrice: true,
       city: true,
       division: true,
       availabilityStatus: true,
@@ -359,6 +475,10 @@ const getMapProperties = async () => {
 
   return properties.map(({ images, ...property }) => ({
     ...property,
+    price:
+      property.listingType === "SALE"
+        ? property.salePrice
+        : property.rentAmount,
     image:
       Array.isArray(images) && typeof images[0] === "string" ? images[0] : null,
   }));

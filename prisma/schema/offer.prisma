@@ -1,0 +1,36 @@
+// A buyer's offer on a SALE listing. updatedAt doubles as the time of the
+// last action, which the 7-day expiry counts from.
+model PurchaseOffer {
+  id            String         @id @default(uuid())
+  propertyId    String
+  property      Property       @relation(fields: [propertyId], references: [id])
+  buyerId       String
+  buyer         User           @relation(fields: [buyerId], references: [id])
+  offerAmount   Decimal
+  counterAmount Decimal?
+  agreedAmount  Decimal?
+  financing     OfferFinancing
+  message       String?
+  status        OfferStatus    @default(PENDING)
+  payment       OfferPayment?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([propertyId])
+  @@index([buyerId])
+  @@index([status])
+}
+
+// The earnest-money deposit for an accepted offer, paid with Stripe Checkout.
+// Kept apart from rental payments so neither flow can affect the other.
+model OfferPayment {
+  id            String        @id @default(uuid())
+  offerId       String        @unique
+  offer         PurchaseOffer @relation(fields: [offerId], references: [id])
+  transactionId String        @unique
+  amount        Decimal
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentDate   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}

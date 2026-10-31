@@ -7,11 +7,14 @@ import { paginationFields } from "../../helpers/paginationHelper.js";
 
 import { PropertyServices } from "./property.service.js";
 import { propertyFilterableFields } from "./property.constant.js";
+import { TListingType } from "./property.interface.js";
 
 const getAllProperties = catchAsync(async (req, res) => {
   const filters = pick(req.query, propertyFilterableFields);
   const options = pick(req.query, paginationFields);
-  const result = await PropertyServices.getAllProperties(filters, options);
+  const result = await PropertyServices.getAllProperties(filters, options, {
+    hideSold: true,
+  });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -110,7 +113,9 @@ const deleteProperty = catchAsync(async (req, res) => {
 });
 
 const getMapProperties = catchAsync(async (req, res) => {
-  const result = await PropertyServices.getMapProperties();
+  const result = await PropertyServices.getMapProperties(
+    req.query.listingType as TListingType | undefined,
+  );
 
   // Public and the same for everyone: let browsers and the CDN cache it.
   res.set(
@@ -127,7 +132,9 @@ const getMapProperties = catchAsync(async (req, res) => {
 });
 
 const getPropertyStates = catchAsync(async (req, res) => {
-  const result = await PropertyServices.getPropertyStates();
+  const result = await PropertyServices.getPropertyStates(
+    req.query.listingType as TListingType | undefined,
+  );
 
   res.set(
     "Cache-Control",

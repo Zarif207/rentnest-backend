@@ -42,6 +42,7 @@
     "seed": "prisma db seed",
     "states:normalize": "tsx prisma/scripts/normalize-states.ts",
     "geocode:backfill": "tsx prisma/scripts/geocode-backfill.ts",
+    "offers:expire": "tsx prisma/scripts/expire-offers.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

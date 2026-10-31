@@ -396,6 +396,7 @@ Copy the printed `whsec_...` into `STRIPE_WEBHOOK_SECRET` and restart `npm run d
 | `npm run seed`                    | Seed the database (idempotent)                                                                      |
 | `npm run states:normalize`        | Rewrite every property's `division` to the full US state name (idempotent; lists unknown values)    |
 | `npm run geocode:backfill`        | Fill missing property coordinates with OpenStreetMap Nominatim, 1.1 s between requests (idempotent) |
+| `npm run offers:expire`           | Expire open offers with no action for 7 days (optional: the API also does it lazily; idempotent)    |
 | `npm run db:generate`             | Generate the Prisma client                                                                          |
 | `npm run db:migrate`              | `prisma migrate dev` (development)                                                                  |
 | `npm run db:deploy`               | `prisma migrate deploy` (production)                                                                |

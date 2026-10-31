@@ -14,6 +14,7 @@
 - [Tenant favorites](#tenant-favorites)
 - [Landlord: properties, requests, reviews](#landlord)
 - [Admin: users, properties, rentals, categories](#admin)
+- [Buy & sell: offers and deposits](#buy--sell)
 - [Homepage settings](#homepage-settings)
 - [Notifications: any signed-in role](#notifications)
 - [Stripe webhook](#stripe-webhook)
@@ -196,20 +197,21 @@ Auth: any role. Updates the signed-in user's own profile. At least one field is 
 
 ### `GET /api/properties`
 
-No auth. Search, filter, paginate and sort properties.
+No auth. Search, filter, paginate and sort properties. Lists both rentals and homes for sale unless `listingType` is given. **Sold homes are left out** unless you ask for them with `availabilityStatus=SOLD` (a sold home's own page, `GET /api/properties/:id`, still works).
 
-| Query param                  | Rules                                                          | Behaviour                                                           |
-| ---------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `searchTerm`                 | string                                                         | case-insensitive match on `title`, `description`, `city`, `address` |
-| `city`                       | string                                                         | case-insensitive exact match                                        |
-| `division`                   | string                                                         | US state, full name or 2-letter code (`MI` → `Michigan`), exact     |
-| `propertyType`               | `APARTMENT` \| `HOUSE` \| `STUDIO` \| `VILLA`                  | exact                                                               |
-| `categoryId`                 | uuid                                                           | exact                                                               |
-| `amenities`                  | comma-separated string                                         | property must have **all** listed amenities                         |
-| `availabilityStatus`         | `AVAILABLE` \| `RENTED`                                        | exact                                                               |
-| `minPrice`, `maxPrice`       | number > 0, `minPrice ≤ maxPrice`                              | monthly `rentAmount` range                                          |
-| `page`, `limit`, `sortOrder` | see [Pagination](#pagination-sorting)                          |                                                                     |
-| `sortBy`                     | `createdAt` \| `rentAmount` \| `area` \| `bedrooms` \| `title` |                                                                     |
+| Query param                  | Rules                                                                     | Behaviour                                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `listingType`                | `RENT` \| `SALE`                                                          | rentals or homes for sale only                                                                                                  |
+| `searchTerm`                 | string                                                                    | case-insensitive match on `title`, `description`, `city`, `address`                                                             |
+| `city`                       | string                                                                    | case-insensitive exact match                                                                                                    |
+| `division`                   | string                                                                    | US state, full name or 2-letter code (`MI` → `Michigan`), exact                                                                 |
+| `propertyType`               | `APARTMENT` \| `HOUSE` \| `STUDIO` \| `VILLA`                             | exact                                                                                                                           |
+| `categoryId`                 | uuid                                                                      | exact                                                                                                                           |
+| `amenities`                  | comma-separated string                                                    | property must have **all** listed amenities                                                                                     |
+| `availabilityStatus`         | `AVAILABLE` \| `RENTED` \| `UNDER_CONTRACT` \| `SOLD`                     | exact                                                                                                                           |
+| `minPrice`, `maxPrice`       | number > 0, `minPrice ≤ maxPrice`                                         | monthly `rentAmount` for rentals, `salePrice` for homes for sale                                                                |
+| `page`, `limit`, `sortOrder` | see [Pagination](#pagination-sorting)                                     |                                                                                                                                 |
+| `sortBy`                     | `createdAt` \| `price` \| `rentAmount` \| `area` \| `bedrooms` \| `title` | `price` = rent for `RENT`, sale price for `SALE`; with both types, rentals come first (by rent), then homes for sale (by price) |
 
 Example: `GET /api/properties?city=austin&limit=1&sortBy=rentAmount&sortOrder=asc`
 
@@ -223,7 +225,9 @@ Example: `GET /api/properties?city=austin&limit=1&sortBy=rentAmount&sortOrder=as
       "id": "47a4bebd-6eaa-4c4b-93e8-096096c904fe",
       "title": "Furnished Studio near Lady Bird Lake",
       "city": "Austin",
+      "listingType": "RENT",
       "rentAmount": "1450",
+      "salePrice": null,
       "propertyType": "STUDIO",
       "availabilityStatus": "AVAILABLE",
       "amenities": ["wifi", "furnished", "air-conditioning"],
@@ -244,11 +248,13 @@ Example: `GET /api/properties?city=austin&limit=1&sortBy=rentAmount&sortOrder=as
 
 _(Each property also includes `description`, `address`, `division`, `bedrooms`, `bathrooms`, `area`, `images`, `categoryId`, `ownerId`, `createdAt`, `updatedAt`; trimmed here.)_
 
+**Listing types:** every property has `listingType` (`RENT` or `SALE`), `rentAmount` and `salePrice`. A rental has a monthly `rentAmount` and `salePrice: null`; a home for sale has a `salePrice` and `rentAmount: null`. Rentals go `AVAILABLE` → `RENTED`; homes for sale go `AVAILABLE` → `UNDER_CONTRACT` (deposit paid) → `SOLD` (sale completed).
+
 **Errors:** 400 validation.
 
 ### `GET /api/properties/map`
 
-No auth. Every property that has coordinates (newest first, at most 1000), trimmed for map pins. Not paginated. Sent with `Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=600`.
+No auth. Every property that has coordinates (newest first, at most 1000, sold homes left out), trimmed for map pins. Optional `?listingType=RENT|SALE`. `price` is whichever price applies (rent or sale price). Not paginated. Sent with `Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=600`.
 
 **200**
 
@@ -262,7 +268,10 @@ No auth. Every property that has coordinates (newest first, at most 1000), trimm
       "title": "Sunny 2-Bedroom Apartment in Midtown Manhattan",
       "latitude": 40.763,
       "longitude": -73.988,
+      "listingType": "RENT",
       "rentAmount": "3200",
+      "salePrice": null,
+      "price": "3200",
       "city": "New York",
       "division": "New York",
       "availabilityStatus": "AVAILABLE",
@@ -274,13 +283,13 @@ No auth. Every property that has coordinates (newest first, at most 1000), trimm
 
 ### `GET /api/properties/states`
 
-No auth. Every state that has properties, busiest first (used by the admin state picker). Cached like `/map`.
+No auth. Every state that has properties, busiest first (used by the admin state picker and state pages). Optional `?listingType=RENT|SALE` counts only that type. Cached like `/map`.
 
 **200** → `data`: `[{ "state": "New York", "propertyCount": 2, "availableCount": 1 }, …]`
 
 ### `GET /api/properties/:id`
 
-No auth. `:id` must be a uuid. **200** → property with `category` and `owner`.
+No auth. `:id` must be a uuid. **200** → property with `category` and `owner` (sold homes too).
 **Errors:** 400 invalid id · 404 `Property not found`.
 
 ### `GET /api/categories`
@@ -313,7 +322,7 @@ Submit a rental request.
 | `leaseMonths` | number | positive integer (JSON number, not a string)        |
 
 `totalRent` is calculated as `rentAmount × leaseMonths`. **201** → booking (`bookingStatus: "PENDING"`) with its property.
-**Errors:** 400 validation · 400 `This property is not available for rent` · 404 `Property not found` · 409 `You already have a pending rental request for this property`.
+**Errors:** 400 validation · 400 `This home is for sale, not for rent. Make an offer instead.` (a `SALE` listing; see [Buy & sell](#buy--sell)) · 400 `This property is not available for rent` · 404 `Property not found` · 409 `You already have a pending rental request for this property`.
 
 ### `GET /api/rentals`
 
@@ -475,7 +484,9 @@ Your properties, with the same filters, sorting and pagination as [`GET /api/pro
 | ----------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
 | `title`, `description`, `address`, `city` | string   | required, min 1                                                                                                 |
 | `division`                                | string   | US state: full name or 2-letter code, any case; saved as the full name (`ny` → `New York`); anything else → 400 |
-| `rentAmount`                              | number   | > 0 (monthly)                                                                                                   |
+| `listingType`                             | enum     | `RENT` (default) \| `SALE`                                                                                      |
+| `rentAmount`                              | number   | > 0 (monthly); **required for `RENT`**, ignored for `SALE` (stored as `null`)                                   |
+| `salePrice`                               | number   | > 0; **required for `SALE`**, ignored for `RENT` (stored as `null`)                                             |
 | `bedrooms`, `bathrooms`                   | number   | integer ≥ 0                                                                                                     |
 | `area`                                    | number   | integer > 0                                                                                                     |
 | `propertyType`                            | enum     | `APARTMENT` \| `HOUSE` \| `STUDIO` \| `VILLA`                                                                   |
@@ -491,14 +502,15 @@ Numbers may be sent as numbers or numeric strings. **201** → created property 
 
 ### `PUT /api/landlord/properties/:id`
 
-Update any subset of the create fields, plus `availabilityStatus` (`AVAILABLE` \| `RENTED`) to set availability. Empty body → 400.
+Update any subset of the create fields, plus `availabilityStatus` (`AVAILABLE` \| `RENTED`, rentals only) to set availability. Empty body → 400.
+Only the price for the listing's type is kept (the other one is `null`). `listingType` can change only while the home has no rental requests and no offers (→ 409 otherwise); switching type needs the new type's price if the home doesn't have one yet (→ 400). A type change also resets `availabilityStatus` to `AVAILABLE`. A home for sale's status changes only through its offers, so `availabilityStatus` on a `SALE` listing → 400.
 Sending `latitude` + `longitude` sets the pin. Otherwise, if `address`, `city` or `division` actually changed, the new address is geocoded (coordinates become `null` if that fails, since the old pin would be wrong).
 **Errors:** 400 validation · 403 `You are not allowed to update this property` · 404 property/category not found.
 
 ### `DELETE /api/landlord/properties/:id`
 
 **200** with `data: null`.
-**Errors:** 400 invalid id · 403 not your property · 404 `Property not found` · 409 the property has bookings or reviews (history is kept).
+**Errors:** 400 invalid id · 403 not your property · 404 `Property not found` · 409 the property has bookings, offers or reviews (history is kept).
 
 ### `GET /api/landlord/requests`
 
@@ -603,6 +615,173 @@ Body as above. **200**. **Errors:** 400 validation · 404 `Category not found` �
 
 ---
 
+## Buy & sell
+
+Homes listed with `listingType: "SALE"` are bought through offers, never rented. The flow:
+
+1. A **tenant** (buyers are tenants) makes an offer → `PENDING`.
+2. The **owner** (an approved landlord) accepts it (`ACCEPTED`, `agreedAmount = offerAmount`), rejects it (`REJECTED`) or counters (`COUNTERED`, with `counterAmount`).
+3. On a counter, the buyer accepts it (`ACCEPTED`, `agreedAmount = counterAmount`) or withdraws.
+4. The buyer pays an **earnest-money deposit** with Stripe Checkout: 1% of `agreedAmount`, at least $500, in whole US dollars. The full price is never charged online. When it's paid: offer `DEPOSIT_PAID`, home `UNDER_CONTRACT`, and every other open offer on the home `REJECTED`.
+5. The owner completes the sale: offer `COMPLETED`, home `SOLD`.
+
+| Status         | Meaning                                                                  |
+| -------------- | ------------------------------------------------------------------------ |
+| `PENDING`      | waiting for the owner                                                    |
+| `COUNTERED`    | the owner proposed `counterAmount`; waiting for the buyer                |
+| `ACCEPTED`     | price agreed (`agreedAmount`); waiting for the deposit                   |
+| `REJECTED`     | declined by the owner, or closed when the home went under contract       |
+| `WITHDRAWN`    | withdrawn by the buyer                                                   |
+| `DEPOSIT_PAID` | deposit paid; the home is under contract                                 |
+| `COMPLETED`    | sale completed; the home is sold                                         |
+| `EXPIRED`      | no action for 7 days while `PENDING`, `COUNTERED` or `ACCEPTED` (unpaid) |
+
+**Rules**
+
+- A buyer can hold **one open offer** (`PENDING`, `COUNTERED` or `ACCEPTED`) per home.
+- A home can have only **one accepted offer** at a time.
+- Open offers **expire 7 days after their last action**. The API applies this whenever offers are read or acted on, and `npm run offers:expire` does it for the whole table (optional; no cron needed). A buyer who pays just as their accepted offer expires still gets it: the paid deposit wins.
+- After the deposit is paid, the buyer can't withdraw in the app (deposits aren't refunded automatically).
+
+**Offer object** (every offer endpoint): the offer's fields (`id`, `propertyId`, `buyerId`, `offerAmount`, `counterAmount`, `agreedAmount`, `financing`, `message`, `status`, `createdAt`, `updatedAt`; amounts are strings), plus:
+
+- `property`: `{ id, title, city, division, images, salePrice, availabilityStatus, ownerId }`
+- `buyer`: `{ id, name, email, phone }`
+- `payment`: the deposit, `{ id, offerId, transactionId, amount, paymentStatus, paymentDate, … }`, or `null`
+- `depositAmount`: the deposit in dollars once a price is agreed (`ACCEPTED` and later), otherwise `null`
+
+```json
+{
+  "id": "5b0e…",
+  "propertyId": "c1d2…",
+  "buyerId": "2e74…",
+  "offerAmount": "860000",
+  "counterAmount": "880000",
+  "agreedAmount": "880000",
+  "financing": "MORTGAGE",
+  "message": "We love the porch.",
+  "status": "ACCEPTED",
+  "createdAt": "2026-10-31T10:00:00.000Z",
+  "updatedAt": "2026-10-31T11:30:00.000Z",
+  "property": {
+    "id": "c1d2…",
+    "title": "Colonial Family Home in Virginia-Highland",
+    "city": "Atlanta",
+    "division": "Georgia",
+    "images": ["https://images.unsplash.com/…"],
+    "salePrice": "895000",
+    "availabilityStatus": "AVAILABLE",
+    "ownerId": "b39e…"
+  },
+  "buyer": {
+    "id": "2e74…",
+    "name": "Nadia Tenant",
+    "email": "tenant1@rentnest.com",
+    "phone": "+15035550103"
+  },
+  "payment": null,
+  "depositAmount": 8800
+}
+```
+
+### `POST /api/offers`
+
+Auth: **TENANT**. Make an offer on a home for sale.
+
+| Field         | Type   | Rules                                |
+| ------------- | ------ | ------------------------------------ |
+| `propertyId`  | uuid   | a `SALE` listing that is `AVAILABLE` |
+| `offerAmount` | number | > 0                                  |
+| `financing`   | enum   | `CASH` \| `MORTGAGE` \| `OTHER`      |
+| `message`     | string | optional, at most 500 characters     |
+
+**201** → the offer (`status: "PENDING"`).
+**Errors:** 400 validation · 400 `This home is for rent. Send a rental request instead.` · 400 `This home is not accepting offers` · 404 `Property not found` · 409 `You already have an open offer on this home`.
+
+### `GET /api/offers`
+
+Auth: **TENANT**. Your offers, newest first. Optional `?status=`. Not paginated.
+
+### `GET /api/offers/:id`
+
+Auth: **TENANT, LANDLORD or ADMIN**: the buyer, the home's owner, or an admin. **200** → the offer.
+**Errors:** 400 invalid id · 403 `You are not authorized to view this offer` · 404 `Offer not found`.
+
+### `PATCH /api/offers/:id/withdraw`
+
+Auth: **TENANT** (the buyer). Withdraws a `PENDING`, `COUNTERED` or `ACCEPTED` offer (also how a buyer declines a counter). **200** → the offer (`WITHDRAWN`).
+**Errors:** 400 `Your deposit is paid, so this offer can't be withdrawn here. Contact the owner.` · 400 `Only open offers can be withdrawn` · 403 not your offer · 404 · 409 changed meanwhile.
+
+### `PATCH /api/offers/:id/accept-counter`
+
+Auth: **TENANT** (the buyer). Accepts a `COUNTERED` offer: `ACCEPTED`, `agreedAmount = counterAmount`. **200** → the offer, with `depositAmount`.
+**Errors:** 400 `Only a countered offer can be accepted` · 403 · 404 · 409 `This home is no longer available` · 409 `Another offer on this home is already accepted`.
+
+### `POST /api/offers/:id/deposit`
+
+Auth: **TENANT** (the buyer). Creates a Stripe Checkout Session (USD) for the deposit of an `ACCEPTED` offer. Calling it again while a session is still open returns that session; otherwise a new one replaces it. The session's `metadata` is `{ type: "sale_deposit", offerId, buyerId }`.
+
+Stripe redirects to `<CLIENT_SUCCESS_URL>?type=deposit&session_id=cs_…` after paying, or `<CLIENT_CANCEL_URL>?type=deposit&offerId=<id>` if the buyer cancels (any query already in those URLs is replaced).
+
+**201**
+
+```json
+{
+  "success": true,
+  "message": "Deposit checkout session created successfully",
+  "data": {
+    "sessionId": "cs_test_…",
+    "checkoutUrl": "https://checkout.stripe.com/c/pay/cs_test_…",
+    "depositAmount": 8800,
+    "offerPaymentId": "a91f…"
+  }
+}
+```
+
+**Errors:** 400 `A deposit can only be paid on an accepted offer` · 403 not your offer · 404 `Offer not found` · 409 `The deposit is already paid` · 409 `This home is no longer available`.
+
+### `POST /api/offers/confirm`
+
+Auth: **TENANT** (the buyer). Body `{ "sessionId": "cs_test_…" }`. Checks the session with Stripe and, if it's paid, applies it (same as the webhook). Idempotent. **200** → the offer.
+**Errors:** 400 invalid session id · 400 `The deposit has not been paid yet` · 400 expired session · 403 · 404 `No deposit found for this checkout session`.
+
+### `GET /api/offers/payments`
+
+Auth: **TENANT**. Your deposits, newest first: `{ id, offerId, transactionId, amount, paymentStatus, paymentDate, createdAt, updatedAt, offer }`, where `offer` includes its `property`.
+
+### `GET /api/landlord/offers`
+
+Auth: **LANDLORD**. Offers on your homes, newest first, with buyer contact. Optional `?status=`. Not paginated.
+
+### `PATCH /api/landlord/offers/:id`
+
+Auth: **approved LANDLORD** (the home's owner).
+
+| Field           | Type   | Rules                             |
+| --------------- | ------ | --------------------------------- |
+| `action`        | enum   | `ACCEPT` \| `REJECT` \| `COUNTER` |
+| `counterAmount` | number | > 0, required for `COUNTER`       |
+
+`ACCEPT` and `COUNTER` need a `PENDING` offer on a home that's still `AVAILABLE` (`ACCEPT` sets `agreedAmount = offerAmount`). `REJECT` also ends a `COUNTERED` offer, or an `ACCEPTED` one whose deposit isn't paid. **200** → the offer.
+**Errors:** 400 validation · 400 `Only pending offers can be accepted or countered` · 400 `Only open offers can be rejected` · 403 not your home / landlord not approved · 404 · 409 `This home is no longer available` · 409 `Another offer on this home is already accepted`.
+
+### `PATCH /api/landlord/offers/:id/complete-sale`
+
+Auth: **approved LANDLORD** (the home's owner). Completes a `DEPOSIT_PAID` offer: offer `COMPLETED`, home `SOLD` (one transaction). **200** → the offer.
+**Errors:** 400 `A sale can only be completed after the deposit is paid` · 403 · 404 · 409 changed meanwhile.
+
+### `GET /api/admin/offers`
+
+Auth: **ADMIN**. Every offer with home, buyer and deposit.
+
+| Query param                  | Rules                                       |
+| ---------------------------- | ------------------------------------------- |
+| `status`                     | offer status (optional)                     |
+| `page`, `limit`, `sortOrder` | see [Pagination](#pagination-sorting)       |
+| `sortBy`                     | `createdAt` \| `updatedAt` \| `offerAmount` |
+
+---
+
 ## Homepage settings
 
 The admin chooses what the homepage shows. The config is stored under the key `homepage`:
@@ -648,8 +827,8 @@ Rules: no duplicate property ids, states, types or sections; `state` accepts a n
 No auth. The config **resolved** for rendering, with `isDefault` and `updatedAt`. Cached briefly (`s-maxage=60`).
 
 - `hero.properties`, `featured.properties`: full property objects (same shape as `GET /api/properties`) in the admin's order; ids that no longer exist are dropped.
-- `states.items[]`: `{ state, imageUrl, propertyCount, startingPrice }`, live from **available** properties whose `division` is that state (`startingPrice` is the lowest rent, a string, or `null`).
-- `propertyTypes.items[]`: `{ type, imageUrl, propertyCount }`; `imageUrl` falls back to a photo of a listing of that type.
+- `states.items[]`: `{ state, imageUrl, propertyCount, startingPrice, rent, sale }`, live from **available** properties whose `division` is that state. `rent` and `sale` are `{ count, startingPrice }` for each listing type (`startingPrice` is the lowest monthly rent or sale price, a string, or `null`). `propertyCount` and `startingPrice` are kept as before and equal `rent.count` and `rent.startingPrice`.
+- `propertyTypes.items[]`: `{ type, imageUrl, propertyCount, rentCount, saleCount }` (`propertyCount` counts both types); `imageUrl` falls back to a photo of a listing of that type.
 - `latest.properties`: the newest `count` properties.
 
 ```json
@@ -666,14 +845,22 @@ No auth. The config **resolved** for rendering, with `isDefault` and `updatedAt`
           "state": "New York",
           "imageUrl": "https://…",
           "propertyCount": 1,
-          "startingPrice": "3200"
+          "startingPrice": "3200",
+          "rent": { "count": 1, "startingPrice": "3200" },
+          "sale": { "count": 0, "startingPrice": null }
         }
       ]
     },
     "propertyTypes": {
       "enabled": true,
       "items": [
-        { "type": "APARTMENT", "imageUrl": "https://…", "propertyCount": 2 }
+        {
+          "type": "APARTMENT",
+          "imageUrl": "https://…",
+          "propertyCount": 3,
+          "rentCount": 2,
+          "saleCount": 1
+        }
       ]
     },
     "latest": { "enabled": true, "count": 8, "properties": [] },
@@ -712,18 +899,25 @@ All routes below need a token for **any role** (`TENANT`, `LANDLORD` or `ADMIN`)
 
 Notifications are created automatically **after** the action that triggers them succeeds; a failed notification is logged and never fails that action.
 
-| Trigger                                        | Who is notified         | `type`                                    | `link`                                                        |
-| ---------------------------------------------- | ----------------------- | ----------------------------------------- | ------------------------------------------------------------- |
-| A landlord registers                           | every active admin      | `LANDLORD_REGISTERED`                     | `/dashboard/admin/users?landlordStatus=PENDING`               |
-| Admin approves / rejects a landlord            | that landlord           | `LANDLORD_APPROVED` / `LANDLORD_REJECTED` | `/dashboard/landlord` / `/contact`                            |
-| Tenant creates a rental request                | the property's landlord | `RENTAL_REQUESTED`                        | `/dashboard/landlord/requests`                                |
-| Landlord approves / rejects a request          | the tenant              | `RENTAL_APPROVED` / `RENTAL_REJECTED`     | the pay page / `/dashboard/tenant/requests`                   |
-| Payment becomes `PAID` (webhook or `/confirm`) | tenant and landlord     | `PAYMENT_SUCCESS` / `PAYMENT_RECEIVED`    | `/dashboard/tenant/payments` / `/dashboard/landlord/requests` |
-| Landlord completes a rental                    | the tenant              | `RENTAL_COMPLETED`                        | `/dashboard/tenant/requests`                                  |
-| Tenant posts a review                          | the property's landlord | `REVIEW_RECEIVED`                         | `/dashboard/landlord/reviews`                                 |
-| Admin bans / unbans a user (status changed)    | that user               | `ACCOUNT_BLOCKED` / `ACCOUNT_UNBLOCKED`   | none                                                          |
+| Trigger                                        | Who is notified                     | `type`                                                  | `link`                                                        |
+| ---------------------------------------------- | ----------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------- |
+| A landlord registers                           | every active admin                  | `LANDLORD_REGISTERED`                                   | `/dashboard/admin/users?landlordStatus=PENDING`               |
+| Admin approves / rejects a landlord            | that landlord                       | `LANDLORD_APPROVED` / `LANDLORD_REJECTED`               | `/dashboard/landlord` / `/contact`                            |
+| Tenant creates a rental request                | the property's landlord             | `RENTAL_REQUESTED`                                      | `/dashboard/landlord/requests`                                |
+| Landlord approves / rejects a request          | the tenant                          | `RENTAL_APPROVED` / `RENTAL_REJECTED`                   | the pay page / `/dashboard/tenant/requests`                   |
+| Payment becomes `PAID` (webhook or `/confirm`) | tenant and landlord                 | `PAYMENT_SUCCESS` / `PAYMENT_RECEIVED`                  | `/dashboard/tenant/payments` / `/dashboard/landlord/requests` |
+| Landlord completes a rental                    | the tenant                          | `RENTAL_COMPLETED`                                      | `/dashboard/tenant/requests`                                  |
+| Tenant posts a review                          | the property's landlord             | `REVIEW_RECEIVED`                                       | `/dashboard/landlord/reviews`                                 |
+| Admin bans / unbans a user (status changed)    | that user                           | `ACCOUNT_BLOCKED` / `ACCOUNT_UNBLOCKED`                 | none                                                          |
+| Buyer makes an offer                           | the home's owner                    | `OFFER_RECEIVED`                                        | `/dashboard/landlord/offers`                                  |
+| Owner accepts / rejects / counters an offer    | the buyer                           | `OFFER_ACCEPTED` / `OFFER_REJECTED` / `OFFER_COUNTERED` | `/dashboard/tenant/offers`                                    |
+| Buyer accepts a counteroffer                   | the owner                           | `OFFER_ACCEPTED`                                        | `/dashboard/landlord/offers`                                  |
+| Buyer withdraws an offer                       | the owner                           | `OFFER_WITHDRAWN`                                       | `/dashboard/landlord/offers`                                  |
+| Deposit becomes `PAID` (webhook or `/confirm`) | buyer and owner                     | `DEPOSIT_PAID` / `DEPOSIT_RECEIVED`                     | `/dashboard/tenant/offers` / `/dashboard/landlord/offers`     |
+| …and the home goes under contract              | other buyers with open offers on it | `OFFER_REJECTED`                                        | `/dashboard/tenant/offers`                                    |
+| Owner completes the sale                       | the buyer                           | `SALE_COMPLETED`                                        | `/dashboard/tenant/offers`                                    |
 
-A payment is notified only by the call that actually marks it paid, so the webhook and `POST /api/payments/confirm` never notify twice.
+A payment (or deposit) is notified only by the call that actually marks it paid, so the webhook and `POST /api/payments/confirm` (or `POST /api/offers/confirm`) never notify twice.
 
 ### `GET /api/notifications`
 
@@ -786,6 +980,13 @@ Called by Stripe, not by clients. The raw body is verified against the `Stripe-S
 | `checkout.session.async_payment_succeeded` | Same as above                                                                    |
 | `checkout.session.expired`                 | Pending payment → `FAILED` (tenant can retry)                                    |
 | `checkout.session.async_payment_failed`    | Pending payment → `FAILED`                                                       |
+
+Sessions are routed by `metadata.type`: a sale deposit (`"sale_deposit"`) gets the deposit handling below; every other session is a rental payment, handled as above.
+
+| Event (deposit session)                                         | Effect                                                                                                                                |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `checkout.session.completed` / `async_payment_succeeded` (paid) | Deposit `PAID`, offer `DEPOSIT_PAID`, property `UNDER_CONTRACT`, every other open offer on it `REJECTED` (one idempotent transaction) |
+| `checkout.session.expired` / `async_payment_failed`             | Pending deposit → `FAILED` (buyer can retry)                                                                                          |
 
 **200** `{ "received": true }` (also for events or sessions it doesn't recognise, so Stripe doesn't retry them).
 **Errors:** 400 `Invalid Stripe webhook signature`.

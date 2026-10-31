@@ -23,6 +23,14 @@ const createRentalRequest = async (
     throw new AppError(httpStatus.NOT_FOUND, "Property not found");
   }
 
+  // Homes for sale are bought through offers, never rented.
+  if (property.listingType !== "RENT" || property.rentAmount === null) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "This home is for sale, not for rent. Make an offer instead.",
+    );
+  }
+
   if (property.availabilityStatus !== "AVAILABLE") {
     throw new AppError(
       httpStatus.BAD_REQUEST,
