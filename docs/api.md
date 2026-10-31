@@ -609,7 +609,7 @@ The admin chooses what the homepage shows. The config is stored under the key `h
 
 ```jsonc
 {
-  "hero": { "propertyIds": ["uuid", "uuid", "uuid"] }, // 0–3, in order
+  "hero": { "propertyIds": ["uuid", "uuid", "uuid"] }, // 0–7, in order
   "featured": {
     "enabled": true,
     "title": "Homes worth the move",
@@ -641,7 +641,7 @@ The admin chooses what the homepage shows. The config is stored under the key `h
 
 Rules: no duplicate property ids, states, types or sections; `state` accepts a name or 2-letter code and is saved as the full name; image URLs must be valid URLs.
 
-**Until an admin saves a config**, defaults are used: the newest 3 properties for the hero, the newest 8 featured, the busiest states (up to 8, each with a photo from one of its listings), all four property types and the latest 8. A saved config that no longer validates also falls back to the defaults.
+**Until an admin saves a config**, defaults are used: the newest 7 properties for the hero, the newest 8 featured, the busiest states (up to 8, each with a photo from one of its listings), all four property types and the latest 8. A saved config that no longer validates also falls back to the defaults.
 
 ### `GET /api/site-settings/homepage`
 
@@ -702,7 +702,7 @@ Auth: **ADMIN**. The raw config for the editor (ids, not properties): `{ config,
 ### `PUT /api/admin/site-settings/homepage`
 
 Auth: **ADMIN**. Body: the full config above. Validates and saves it. **200** → `{ config, isDefault: false, updatedAt }`.
-**Errors:** 400 validation (e.g. `hero.propertyIds: Pick at most 3 properties`, `states.items.0.state: State must be a US state (full name or 2-letter code)`).
+**Errors:** 400 validation (e.g. `hero.propertyIds: Pick at most 7 properties`, `states.items.0.state: State must be a US state (full name or 2-letter code)`).
 
 ---
 

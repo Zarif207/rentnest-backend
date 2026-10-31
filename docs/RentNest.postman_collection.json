@@ -1974,7 +1974,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "admin", "site-settings", "homepage"]
             },
-            "description": "Full config. hero max 3, featured max 12, states max 8 (name or code), latest.count 4–16, no duplicates."
+            "description": "Full config. hero max 7, featured max 12, states max 8 (name or code), latest.count 4–16, no duplicates."
           },
           "response": []
         }

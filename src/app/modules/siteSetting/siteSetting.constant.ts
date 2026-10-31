@@ -18,7 +18,8 @@ export const HOMEPAGE_SECTIONS = [
 export const DEFAULT_SECTION_ORDER = [...HOMEPAGE_SECTIONS];
 
 export const HOMEPAGE_LIMITS = {
-  hero: 3,
+  // One per piece of the hero's house mosaic.
+  hero: 7,
   featured: 12,
   states: 8,
   latestMin: 4,

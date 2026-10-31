@@ -53,7 +53,7 @@ const buildDefaultConfig = async (): Promise<THomepageConfig> => {
     prisma.property.findMany({
       select: { id: true },
       orderBy: { createdAt: "desc" },
-      take: HOMEPAGE_LIMITS.defaultFeatured,
+      take: Math.max(HOMEPAGE_LIMITS.defaultFeatured, HOMEPAGE_LIMITS.hero),
     }),
     prisma.property.groupBy({
       by: ["division"],
@@ -82,7 +82,10 @@ const buildDefaultConfig = async (): Promise<THomepageConfig> => {
 
   return {
     hero: { propertyIds: newestIds.slice(0, HOMEPAGE_LIMITS.hero) },
-    featured: { enabled: true, propertyIds: newestIds },
+    featured: {
+      enabled: true,
+      propertyIds: newestIds.slice(0, HOMEPAGE_LIMITS.defaultFeatured),
+    },
     states: { enabled: states.length > 0, items: states },
     propertyTypes: {
       enabled: true,
