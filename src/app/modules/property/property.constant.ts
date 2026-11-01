@@ -1,3 +1,5 @@
+import { Prisma } from "../../../../generated/prisma/client.js";
+
 export const propertySearchableFields = [
   "title",
   "description",
@@ -54,6 +56,17 @@ export const REVIEW_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
 
 // Only listings an admin approved are public: add this to public queries.
 export const APPROVED_ONLY = { reviewStatus: "APPROVED" } as const;
+
+// Rented and sold homes keep their own page but drop out of public lists.
+export const OPEN_AVAILABILITY = {
+  availabilityStatus: { notIn: ["RENTED", "SOLD"] },
+} satisfies Prisma.PropertyWhereInput;
+
+// What public lists, the map, states and the homepage show by default.
+export const PUBLIC_LISTING = {
+  ...APPROVED_ONLY,
+  ...OPEN_AVAILABILITY,
+} satisfies Prisma.PropertyWhereInput;
 
 // Where an admin's decision may come from: approving works on a pending or a
 // rejected listing, rejecting only on a pending one.

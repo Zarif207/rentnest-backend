@@ -19,8 +19,8 @@ export type TPropertyFilters = {
 };
 
 export type TPropertyListOptions = {
-  // Public lists leave SOLD homes out unless they're asked for by status.
-  hideSold?: boolean;
+  // Public lists leave RENTED and SOLD homes out unless asked for by status.
+  hideClosed?: boolean;
   // Public lists show only listings an admin approved.
   approvedOnly?: boolean;
 };

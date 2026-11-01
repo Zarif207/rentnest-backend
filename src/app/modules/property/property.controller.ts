@@ -16,7 +16,7 @@ const getAllProperties = catchAsync(async (req, res) => {
   const filters = pick(req.query, propertyFilterableFields);
   const options = pick(req.query, paginationFields);
   const result = await PropertyServices.getAllProperties(filters, options, {
-    hideSold: true,
+    hideClosed: true,
     approvedOnly: true,
   });
 

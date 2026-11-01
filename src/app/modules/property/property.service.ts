@@ -8,6 +8,8 @@ import {
   ADMIN_REVIEW_LINK,
   APPROVED_ONLY,
   LANDLORD_PROPERTIES_LINK,
+  OPEN_AVAILABILITY,
+  PUBLIC_LISTING,
   propertySearchableFields,
   REVIEW_TRANSITIONS,
 } from "./property.constant.js";
@@ -233,9 +235,9 @@ const getAllProperties = async (
     andConditions.push({
       availabilityStatus: availabilityStatus as $Enums.AvailabilityStatus,
     });
-  } else if (listOptions.hideSold) {
-    // Sold homes stay reachable by link, but public lists skip them.
-    andConditions.push({ availabilityStatus: { not: "SOLD" } });
+  } else if (listOptions.hideClosed) {
+    // Rented and sold homes stay reachable by link, but public lists skip them.
+    andConditions.push(OPEN_AVAILABILITY);
   }
 
   // The price range applies to rent for RENT and to the price for SALE.
@@ -529,7 +531,7 @@ const reviewProperty = async (
  * and state landing pages); only one listing type's homes when it's given.
  */
 const getPropertyStates = async (listingType?: TListingType) => {
-  const where = { ...APPROVED_ONLY, ...(listingType ? { listingType } : {}) };
+  const where = { ...PUBLIC_LISTING, ...(listingType ? { listingType } : {}) };
   const [all, available] = await Promise.all([
     prisma.property.groupBy({
       by: ["division"],
@@ -562,7 +564,7 @@ const getPropertyStates = async (listingType?: TListingType) => {
 const MAP_LIMIT = 1000;
 
 /**
- * Every approved property with coordinates (sold homes left out), trimmed to
+ * Every approved property with coordinates (rented and sold homes left out), trimmed to
  * what a map pin and popup need. `price` is whichever price applies.
  */
 const getMapProperties = async (listingType?: TListingType) => {
@@ -570,8 +572,7 @@ const getMapProperties = async (listingType?: TListingType) => {
     where: {
       latitude: { not: null },
       longitude: { not: null },
-      availabilityStatus: { not: "SOLD" },
-      ...APPROVED_ONLY,
+      ...PUBLIC_LISTING,
       ...(listingType ? { listingType } : {}),
     },
     select: {

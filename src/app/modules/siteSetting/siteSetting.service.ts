@@ -2,7 +2,7 @@ import prisma from "../../../lib/prisma.js";
 import { Prisma } from "../../../../generated/prisma/client.js";
 import { normalizeUsState } from "../../constants/usStates.js";
 import {
-  APPROVED_ONLY,
+  PUBLIC_LISTING,
   PROPERTY_TYPES,
 } from "../property/property.constant.js";
 import {
@@ -43,7 +43,7 @@ const findPropertiesInOrder = async (ids: string[]) => {
   if (ids.length === 0) return [];
 
   const properties = await prisma.property.findMany({
-    where: { id: { in: ids }, ...APPROVED_ONLY },
+    where: { id: { in: ids }, ...PUBLIC_LISTING },
     include: propertyInclude,
     omit: propertyOmit,
   });
@@ -59,14 +59,14 @@ const findPropertiesInOrder = async (ids: string[]) => {
 const buildDefaultConfig = async (): Promise<THomepageConfig> => {
   const [newest, stateGroups] = await Promise.all([
     prisma.property.findMany({
-      where: APPROVED_ONLY,
+      where: PUBLIC_LISTING,
       select: { id: true },
       orderBy: { createdAt: "desc" },
       take: Math.max(HOMEPAGE_LIMITS.defaultFeatured, HOMEPAGE_LIMITS.hero),
     }),
     prisma.property.groupBy({
       by: ["division"],
-      where: APPROVED_ONLY,
+      where: PUBLIC_LISTING,
       _count: { _all: true },
       orderBy: { _count: { division: "desc" } },
       take: HOMEPAGE_LIMITS.states,
@@ -80,7 +80,7 @@ const buildDefaultConfig = async (): Promise<THomepageConfig> => {
     if (!state || states.some((item) => item.state === state)) continue;
 
     const withImage = await prisma.property.findFirst({
-      where: { division: group.division, ...APPROVED_ONLY },
+      where: { division: group.division, ...PUBLIC_LISTING },
       select: { images: true },
       orderBy: { createdAt: "desc" },
     });
@@ -138,7 +138,7 @@ const resolveConfig = async (config: THomepageConfig) => {
       findPropertiesInOrder(config.hero.propertyIds),
       findPropertiesInOrder(config.featured.propertyIds),
       prisma.property.findMany({
-        where: APPROVED_ONLY,
+        where: PUBLIC_LISTING,
         include: propertyInclude,
         omit: propertyOmit,
         orderBy: { createdAt: "desc" },
@@ -146,13 +146,13 @@ const resolveConfig = async (config: THomepageConfig) => {
       }),
       prisma.property.groupBy({
         by: ["division", "listingType"],
-        where: { availabilityStatus: "AVAILABLE", ...APPROVED_ONLY },
+        where: { ...PUBLIC_LISTING, availabilityStatus: "AVAILABLE" },
         _count: { _all: true },
         _min: { rentAmount: true, salePrice: true },
       }),
       prisma.property.groupBy({
         by: ["propertyType", "listingType"],
-        where: APPROVED_ONLY,
+        where: PUBLIC_LISTING,
         _count: { _all: true },
       }),
     ]);
@@ -202,7 +202,7 @@ const resolveConfig = async (config: THomepageConfig) => {
       let imageUrl = item.imageUrl ?? null;
       if (!imageUrl) {
         const listing = await prisma.property.findFirst({
-          where: { propertyType: item.type, ...APPROVED_ONLY },
+          where: { propertyType: item.type, ...PUBLIC_LISTING },
           select: { images: true },
           orderBy: { createdAt: "desc" },
         });

@@ -199,7 +199,7 @@ Auth: any role. Updates the signed-in user's own profile. At least one field is 
 
 ### `GET /api/properties`
 
-No auth. Search, filter, paginate and sort properties. Lists both rentals and homes for sale unless `listingType` is given. **Sold homes are left out** unless you ask for them with `availabilityStatus=SOLD` (a sold home's own page, `GET /api/properties/:id`, still works).
+No auth. Search, filter, paginate and sort properties. Lists both rentals and homes for sale unless `listingType` is given. **Rented and sold homes are left out** of every public list (this one, map, states, homepage) unless you pass `availabilityStatus` (`UNDER_CONTRACT` stays listed; `GET /api/properties/:id` still works).
 
 | Query param                  | Rules                                                                     | Behaviour                                                                                                                       |
 | ---------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
