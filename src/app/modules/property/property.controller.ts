@@ -6,7 +6,10 @@ import pick from "../../utils/pick.js";
 import { paginationFields } from "../../helpers/paginationHelper.js";
 
 import { PropertyServices } from "./property.service.js";
-import { propertyFilterableFields } from "./property.constant.js";
+import {
+  propertyFilterableFields,
+  reviewablePropertyFilterableFields,
+} from "./property.constant.js";
 import { TListingType } from "./property.interface.js";
 
 const getAllProperties = catchAsync(async (req, res) => {
@@ -14,6 +17,7 @@ const getAllProperties = catchAsync(async (req, res) => {
   const options = pick(req.query, paginationFields);
   const result = await PropertyServices.getAllProperties(filters, options, {
     hideSold: true,
+    approvedOnly: true,
   });
 
   sendResponse(res, {
@@ -26,7 +30,7 @@ const getAllProperties = catchAsync(async (req, res) => {
 });
 
 const getAllPropertiesForAdmin = catchAsync(async (req, res) => {
-  const filters = pick(req.query, propertyFilterableFields);
+  const filters = pick(req.query, reviewablePropertyFilterableFields);
   const options = pick(req.query, paginationFields);
   const result = await PropertyServices.getAllProperties(filters, options);
 
@@ -40,8 +44,9 @@ const getAllPropertiesForAdmin = catchAsync(async (req, res) => {
 });
 
 const getMyProperties = catchAsync(async (req, res) => {
+  // Every one of their listings, whatever its review status.
   const filters = {
-    ...pick(req.query, propertyFilterableFields),
+    ...pick(req.query, reviewablePropertyFilterableFields),
     ownerId: req.user.userId,
   };
   const options = pick(req.query, paginationFields);
@@ -71,8 +76,10 @@ const createProperty = catchAsync(async (req, res) => {
 });
 
 const getPropertyById = catchAsync(async (req, res) => {
+  // req.user is set only when a valid token was sent (optionalAuth).
   const result = await PropertyServices.getPropertyById(
     req.params.id as string,
+    req.user ? { userId: req.user.userId, role: req.user.role } : undefined,
   );
 
   sendResponse(res, {
@@ -149,6 +156,24 @@ const getPropertyStates = catchAsync(async (req, res) => {
   });
 });
 
+const reviewProperty = catchAsync(async (req, res) => {
+  const result = await PropertyServices.reviewProperty(
+    req.params.id as string,
+    req.user.userId,
+    req.body,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message:
+      result.reviewStatus === "APPROVED"
+        ? "Property approved"
+        : "Property rejected",
+    data: result,
+  });
+});
+
 export const PropertyControllers = {
   getMapProperties,
   getPropertyStates,
@@ -159,4 +184,5 @@ export const PropertyControllers = {
   getPropertyById,
   updateProperty,
   deleteProperty,
+  reviewProperty,
 };

@@ -628,6 +628,60 @@
           "response": []
         },
         {
+          "name": "List my rejected listings",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{landlordToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/landlord/properties?reviewStatus=REJECTED",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "landlord", "properties"],
+              "query": [
+                {
+                  "key": "reviewStatus",
+                  "value": "REJECTED"
+                }
+              ]
+            },
+            "description": "Your own listings in every review status; each has reviewStatus and reviewNote (the admin's reason for a rejection)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get my listing under review",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{landlordToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/properties/{{propertyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "properties", "{{propertyId}}"]
+            },
+            "description": "GET /api/properties/:id with the owner's (or an admin's) token also returns listings that aren't approved yet. Anyone else gets 404."
+          },
+          "response": []
+        },
+        {
           "name": "Create property",
           "event": [
             {
@@ -675,7 +729,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "landlord", "properties"]
             },
-            "description": "division accepts a state name or code (\"tx\" → \"Texas\"). Optional latitude + longitude set the map pin; without them the address is geocoded server-side."
+            "description": "division accepts a state name or code (\"tx\" → \"Texas\"). Optional latitude + longitude set the map pin; without them the address is geocoded server-side. New listings start with reviewStatus PENDING and are public only after an admin approves them (Admin → Approve listing)."
           },
           "response": []
         },
@@ -764,7 +818,8 @@
               "raw": "{{baseUrl}}/api/landlord/properties/{{propertyId}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "landlord", "properties", "{{propertyId}}"]
-            }
+            },
+            "description": "Editing a REJECTED listing sends it back for review (PENDING, note cleared, admins notified)."
           },
           "response": []
         },
@@ -1852,6 +1907,126 @@
           "response": []
         },
         {
+          "name": "List listings waiting for review",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.success && json.data.length > 0) {",
+                  "  pm.collectionVariables.set(\"propertyId\", json.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/properties?reviewStatus=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "properties"],
+              "query": [
+                {
+                  "key": "reviewStatus",
+                  "value": "PENDING"
+                }
+              ]
+            },
+            "description": "reviewStatus: PENDING | APPROVED | REJECTED. Saves the first pending listing as propertyId."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve listing",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/properties/{{propertyId}}/review",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "properties", "{{propertyId}}", "review"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "PENDING or REJECTED → APPROVED. The listing becomes public and the owner gets PROPERTY_APPROVED. 409 if it was already approved or another admin just reviewed it."
+          },
+          "response": []
+        },
+        {
+          "name": "Reject listing",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/properties/{{propertyId}}/review",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "properties", "{{propertyId}}", "review"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"REJECTED\",\n  \"note\": \"Please add photos of the kitchen and bathroom.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "PENDING → REJECTED. note (3–500 chars) is required and sent to the owner (PROPERTY_REJECTED). Editing the listing sends it back to PENDING."
+          },
+          "response": []
+        },
+        {
           "name": "List all rental requests",
           "request": {
             "method": "GET",
@@ -2654,6 +2829,68 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Unread summary (per link)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "summary"]
+            },
+            "description": "{ unreadTotal, byLink: [{ link, count }] } for badges on dashboard sections."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark read by link",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/read-by-link",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "read-by-link"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"linkPrefix\": \"/dashboard/admin/properties\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Marks your unread notifications whose link starts with linkPrefix as read. linkPrefix must start with /dashboard/."
+          },
+          "response": []
         }
       ]
     },
@@ -2884,6 +3121,43 @@
               "raw": "{{baseUrl}}/api/auth/register",
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "400 rejection without a note",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/properties/{{propertyId}}/review",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "properties", "{{propertyId}}", "review"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"REJECTED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []

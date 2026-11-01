@@ -18,6 +18,12 @@ export const propertyFilterableFields = [
   "maxPrice",
 ];
 
+// Admin and landlord lists can also filter by review status.
+export const reviewablePropertyFilterableFields = [
+  ...propertyFilterableFields,
+  "reviewStatus",
+];
+
 // "price" sorts by rentAmount for RENT and salePrice for SALE.
 export const propertySortableFields = [
   "createdAt",
@@ -43,6 +49,22 @@ export const AVAILABILITY_STATUSES = [
   "UNDER_CONTRACT",
   "SOLD",
 ] as const;
+
+export const REVIEW_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
+
+// Only listings an admin approved are public: add this to public queries.
+export const APPROVED_ONLY = { reviewStatus: "APPROVED" } as const;
+
+// Where an admin's decision may come from: approving works on a pending or a
+// rejected listing, rejecting only on a pending one.
+export const REVIEW_TRANSITIONS = {
+  APPROVED: ["PENDING", "REJECTED"],
+  REJECTED: ["PENDING"],
+} as const;
+
+// Where admins and landlords open a listing under review.
+export const ADMIN_REVIEW_LINK = "/dashboard/admin/properties?review=PENDING";
+export const LANDLORD_PROPERTIES_LINK = "/dashboard/landlord/properties";
 
 // The statuses a landlord may set by hand on a rental. Sale homes move
 // through UNDER_CONTRACT and SOLD by the offer flow only.

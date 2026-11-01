@@ -50,8 +50,35 @@ const markAllAsRead = catchAsync(async (req, res) => {
   });
 });
 
+const markReadByLink = catchAsync(async (req, res) => {
+  const result = await NotificationServices.markReadByLink(
+    req.user.userId,
+    req.body.linkPrefix,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Notifications marked as read",
+    data: result,
+  });
+});
+
+const getSummary = catchAsync(async (req, res) => {
+  const result = await NotificationServices.getSummary(req.user.userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Notification summary retrieved successfully",
+    data: result,
+  });
+});
+
 export const NotificationControllers = {
   getMyNotifications,
   markAsRead,
   markAllAsRead,
+  markReadByLink,
+  getSummary,
 };

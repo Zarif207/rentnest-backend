@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 
 import prisma from "../../../lib/prisma.js";
+import { APPROVED_ONLY } from "../property/property.constant.js";
 import AppError from "../../utils/AppError.js";
 import { paginationHelper } from "../../helpers/paginationHelper.js";
 import { TPaginationOptions } from "../../interfaces/pagination.js";
@@ -87,9 +88,14 @@ const createReview = async (userId: string, payload: ICreateReview) => {
 };
 
 const getPropertyReviews = async (propertyId: string) => {
-  const property = await prisma.property.findUnique({
+  // Public: a listing that isn't approved looks the same as a missing one.
+  const property = await prisma.property.findFirst({
     where: {
       id: propertyId,
+      ...APPROVED_ONLY,
+    },
+    select: {
+      id: true,
     },
   });
 

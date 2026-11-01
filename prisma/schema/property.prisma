@@ -30,6 +30,14 @@ model Property {
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id])
 
+  // Admin review: only APPROVED listings are public. reviewNote is the
+  // admin's reason for a rejection; reviewedBy is the admin who decided.
+  reviewStatus PropertyReviewStatus @default(PENDING)
+  reviewNote   String?
+  reviewedAt   DateTime?
+  reviewedById String?
+  reviewedBy   User?                @relation("PropertyReviewer", fields: [reviewedById], references: [id])
+
   bookings  Booking[]
   reviews   Review[]
   favorites Favorite[]
@@ -43,4 +51,5 @@ model Property {
   @@index([rentAmount])
   @@index([ownerId])
   @@index([listingType])
+  @@index([reviewStatus])
 }

@@ -16,6 +16,14 @@ enum LandlordStatus {
   REJECTED
 }
 
+// New listings start PENDING and are public only once an admin APPROVES
+// them. A REJECTED listing goes back to PENDING when its landlord edits it.
+enum PropertyReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum PropertyType {
   APARTMENT
   HOUSE
@@ -80,6 +88,9 @@ enum NotificationType {
   DEPOSIT_RECEIVED
   DEPOSIT_PAID
   SALE_COMPLETED
+  PROPERTY_SUBMITTED
+  PROPERTY_APPROVED
+  PROPERTY_REJECTED
 }
 
 // PENDING -> (owner) COUNTERED | ACCEPTED | REJECTED; COUNTERED -> (buyer)

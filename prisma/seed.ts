@@ -310,8 +310,14 @@ async function main() {
     });
 
     if (!exists) {
+      // Demo listings skip the admin review and are public right away.
       await prisma.property.create({
-        data: { ...property, ownerId, categoryId: categoryIds.get(category)! },
+        data: {
+          ...property,
+          ownerId,
+          categoryId: categoryIds.get(category)!,
+          reviewStatus: "APPROVED",
+        },
       });
       createdProperties++;
     }

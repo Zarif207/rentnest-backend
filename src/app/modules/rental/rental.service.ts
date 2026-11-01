@@ -23,6 +23,13 @@ const createRentalRequest = async (
     throw new AppError(httpStatus.NOT_FOUND, "Property not found");
   }
 
+  if (property.reviewStatus !== "APPROVED") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "This listing hasn't been approved yet",
+    );
+  }
+
   // Homes for sale are bought through offers, never rented.
   if (property.listingType !== "RENT" || property.rentAmount === null) {
     throw new AppError(

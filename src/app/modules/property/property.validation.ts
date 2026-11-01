@@ -7,6 +7,7 @@ import {
   AVAILABILITY_STATUSES,
   LISTING_TYPES,
   RENTAL_AVAILABILITY_STATUSES,
+  REVIEW_STATUSES,
   propertySortableFields,
 } from "./property.constant.js";
 
@@ -155,48 +156,62 @@ const propertyIdValidationSchema = z.object({
   }),
 });
 
+const propertyQueryFields = {
+  searchTerm: z.string().optional(),
+  listingType: z.enum(LISTING_TYPES).optional(),
+  city: z.string().optional(),
+  // Filter by code or name ("MI" finds Michigan); unknown values pass through.
+  division: z
+    .string()
+    .transform((value) => normalizeUsState(value) ?? value)
+    .optional(),
+
+  propertyType: z.enum(PROPERTY_TYPES).optional(),
+
+  availabilityStatus: z.enum(AVAILABILITY_STATUSES).optional(),
+
+  categoryId: z.string().uuid("Invalid category ID").optional(),
+
+  amenities: z.string().optional(),
+
+  minPrice: z.coerce
+    .number()
+    .positive("Minimum price must be greater than 0")
+    .optional(),
+
+  maxPrice: z.coerce
+    .number()
+    .positive("Maximum price must be greater than 0")
+    .optional(),
+
+  ...paginationHelper.paginationQueryFields(propertySortableFields),
+};
+
+const isPriceRangeValid = (query: { minPrice?: number; maxPrice?: number }) =>
+  query.minPrice === undefined ||
+  query.maxPrice === undefined ||
+  query.minPrice <= query.maxPrice;
+
+const priceRangeError = {
+  message: "Minimum price cannot be greater than maximum price",
+  path: ["minPrice"],
+};
+
+// Public list: approved listings only, so no review filter.
 const propertyQueryValidationSchema = z.object({
   query: z
+    .object(propertyQueryFields)
+    .refine(isPriceRangeValid, priceRangeError),
+});
+
+// Admin and landlord lists can also filter by review status.
+const reviewablePropertyQueryValidationSchema = z.object({
+  query: z
     .object({
-      searchTerm: z.string().optional(),
-      listingType: z.enum(LISTING_TYPES).optional(),
-      city: z.string().optional(),
-      // Filter by code or name ("MI" finds Michigan); unknown values pass through.
-      division: z
-        .string()
-        .transform((value) => normalizeUsState(value) ?? value)
-        .optional(),
-
-      propertyType: z.enum(PROPERTY_TYPES).optional(),
-
-      availabilityStatus: z.enum(AVAILABILITY_STATUSES).optional(),
-
-      categoryId: z.string().uuid("Invalid category ID").optional(),
-
-      amenities: z.string().optional(),
-
-      minPrice: z.coerce
-        .number()
-        .positive("Minimum price must be greater than 0")
-        .optional(),
-
-      maxPrice: z.coerce
-        .number()
-        .positive("Maximum price must be greater than 0")
-        .optional(),
-
-      ...paginationHelper.paginationQueryFields(propertySortableFields),
+      ...propertyQueryFields,
+      reviewStatus: z.enum(REVIEW_STATUSES).optional(),
     })
-    .refine(
-      (query) =>
-        query.minPrice === undefined ||
-        query.maxPrice === undefined ||
-        query.minPrice <= query.maxPrice,
-      {
-        message: "Minimum price cannot be greater than maximum price",
-        path: ["minPrice"],
-      },
-    ),
+    .refine(isPriceRangeValid, priceRangeError),
 });
 
 // GET /properties/map and /properties/states.
@@ -206,10 +221,33 @@ const listingTypeQueryValidationSchema = z.object({
   }),
 });
 
+// PATCH /admin/properties/:id/review. A rejection needs a note for the landlord.
+const reviewPropertyValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("Invalid property ID"),
+  }),
+  body: z
+    .object({
+      status: z.enum(["APPROVED", "REJECTED"]),
+      note: z
+        .string()
+        .trim()
+        .min(3, "Note must be at least 3 characters")
+        .max(500, "Note must be at most 500 characters")
+        .optional(),
+    })
+    .refine((body) => body.status !== "REJECTED" || body.note !== undefined, {
+      message: "Add a note telling the landlord why the listing was rejected",
+      path: ["note"],
+    }),
+});
+
 export const PropertyValidations = {
   createPropertyValidationSchema,
   updatePropertyValidationSchema,
   propertyIdValidationSchema,
   propertyQueryValidationSchema,
   listingTypeQueryValidationSchema,
+  reviewablePropertyQueryValidationSchema,
+  reviewPropertyValidationSchema,
 };

@@ -19,7 +19,19 @@ const notificationIdValidationSchema = z.object({
   }),
 });
 
+// Only in-app dashboard links can be cleared this way.
+const readByLinkValidationSchema = z.object({
+  body: z.object({
+    linkPrefix: z
+      .string()
+      .trim()
+      .max(300, "Link prefix must be at most 300 characters")
+      .startsWith("/dashboard/", "Link prefix must start with /dashboard/"),
+  }),
+});
+
 export const NotificationValidation = {
   notificationQueryValidationSchema,
   notificationIdValidationSchema,
+  readByLinkValidationSchema,
 };

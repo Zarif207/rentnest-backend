@@ -37,13 +37,14 @@ RentNest is the backend for a rental marketplace with three roles, chosen at reg
 
 - **Tenant:** browses and searches listings, requests a rental, pays once the landlord approves, and reviews the property after the rental is completed.
 - **Landlord:** lists and manages properties, approves or rejects requests, completes rentals and reads tenant reviews.
-- **Admin:** bans or unbans users, oversees all listings and rentals, and manages property categories.
+- **Admin:** bans or unbans users, approves or rejects new listings, oversees all listings and rentals, and manages property categories.
 
 ## Features
 
 <details open>
 <summary><b>Public</b></summary>
 
+- Only listings an admin has **approved** are public (lists, map, states, details, reviews, homepage)
 - Browse properties with **search** (title, description, city, address), **filters** (city, state (`division`), property type, category, amenities, availability, price range), **pagination** and **sorting**
 - Property details with category and landlord contact
 - List categories and a property's reviews
@@ -67,7 +68,8 @@ RentNest is the backend for a rental marketplace with three roles, chosen at reg
 <summary><b>Landlord</b></summary>
 
 - Create, update and delete own properties; set availability
-- List own properties (same filters and pagination as the public list)
+- New listings wait for admin review; a rejected listing shows the admin's note and goes back for review when edited
+- List own properties in every review status (same filters and pagination as the public list, plus `reviewStatus`)
 - View requests for own properties (filter by status), approve or reject pending ones
 - Mark an active, paid rental as completed (property becomes available again)
 - Read reviews left on own properties
@@ -79,6 +81,7 @@ RentNest is the backend for a rental marketplace with three roles, chosen at reg
 
 - List users with search, role/status filters and pagination
 - Ban/unban users (blocked users can't log in or use protected routes; admins can't be blocked)
+- Review new listings: approve, or reject with a note for the landlord (filter `?reviewStatus=PENDING`)
 - View all properties and all rental requests (filter by status, paginated)
 - Create, rename and delete categories
 
@@ -203,6 +206,19 @@ stateDiagram-v2
 
 `CANCELLED` exists in the `BookingStatus` enum but no endpoint sets it yet (see [limitations](#known-limitations--future-improvements)).
 
+### Listing review
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING : Landlord creates (admins notified)
+    PENDING --> APPROVED : Admin approves (now public)
+    PENDING --> REJECTED : Admin rejects with a note
+    REJECTED --> PENDING : Landlord edits (admins notified again)
+    REJECTED --> APPROVED : Admin approves
+```
+
+`Property.reviewStatus` decides what's public: only `APPROVED` listings appear in public endpoints, and rental requests and offers can only be made on them. Listings that existed before the review process were marked `APPROVED` by the migration, and seeded listings are created `APPROVED`. The admin's decision is a conditional update (it only applies from an allowed status), so two admins can't both apply one.
+
 ## Payment flow
 
 ```mermaid
@@ -270,11 +286,14 @@ Full details (bodies, validation rules, examples, error codes): **[`docs/api.md`
 | GET    | `/api/landlord/reviews`               | Landlord         | Reviews on my properties                                 |
 | GET    | `/api/admin/users`                    | Admin            | List users                                               |
 | PATCH  | `/api/admin/users/:id`                | Admin            | Ban / unban a user                                       |
-| GET    | `/api/admin/properties`               | Admin            | All properties                                           |
+| GET    | `/api/admin/properties`               | Admin            | All properties (`?reviewStatus=`)                        |
+| PATCH  | `/api/admin/properties/:id/review`    | Admin            | Approve or reject a listing                              |
 | GET    | `/api/admin/rentals`                  | Admin            | All rental requests                                      |
 | POST   | `/api/categories`                     | Admin            | Create a category                                        |
 | PUT    | `/api/categories/:id`                 | Admin            | Rename a category                                        |
 | DELETE | `/api/categories/:id`                 | Admin            | Delete an unused category                                |
+| GET    | `/api/notifications/summary`          | any              | Unread count, per link (dashboard badges)                |
+| PATCH  | `/api/notifications/read-by-link`     | any              | Mark unread notifications under a link as read           |
 | POST   | `/api/payments/webhook`               | Stripe           | Stripe webhook (signature verified)                      |
 
 ## Response & error format
@@ -434,14 +453,15 @@ The API runs on **Vercel** as a single serverless function:
 **Suggested demo order**
 
 1. Public → List properties (filters + pagination)
-2. Landlord → Create property
-3. Tenant → Submit rental request
-4. Landlord → List requests → Approve
-5. Tenant → Create payment → open `checkoutUrl`, pay with `4242 4242 4242 4242` → Confirm payment (or let the webhook do it)
-6. Landlord → Mark rental as completed
-7. Tenant → Create review
-8. Admin → List users → Ban user → try logging in as that user
-9. Error Examples folder (400, 401, 403, 404, 409)
+2. Landlord → Create property (starts `PENDING`, not public yet)
+3. Admin → List listings waiting for review → Approve listing
+4. Tenant → Submit rental request
+5. Landlord → List requests → Approve
+6. Tenant → Create payment → open `checkoutUrl`, pay with `4242 4242 4242 4242` → Confirm payment (or let the webhook do it)
+7. Landlord → Mark rental as completed
+8. Tenant → Create review
+9. Admin → List users → Ban user → try logging in as that user
+10. Error Examples folder (400, 401, 403, 404, 409)
 
 ## Technical challenges solved
 

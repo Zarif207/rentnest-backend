@@ -1,5 +1,6 @@
 import httpStatus from "http-status";
 import prisma from "../../../lib/prisma.js";
+import { APPROVED_ONLY } from "../property/property.constant.js";
 import AppError from "../../utils/AppError.js";
 import { paginationHelper } from "../../helpers/paginationHelper.js";
 import { TPaginationOptions } from "../../interfaces/pagination.js";
@@ -65,9 +66,11 @@ const getMyFavoriteIds = async (userId: string) => {
 
 /** Saves a property. Idempotent: an already-saved property is returned as is. */
 const addFavorite = async (userId: string, propertyId: string) => {
-  const property = await prisma.property.findUnique({
+  // Only public (approved) listings can be saved.
+  const property = await prisma.property.findFirst({
     where: {
       id: propertyId,
+      ...APPROVED_ONLY,
     },
     select: {
       id: true,

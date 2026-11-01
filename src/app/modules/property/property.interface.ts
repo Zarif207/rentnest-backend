@@ -1,5 +1,7 @@
 export type TListingType = "RENT" | "SALE";
 
+export type TReviewStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export type TPropertyFilters = {
   searchTerm?: string;
   listingType?: TListingType;
@@ -12,11 +14,26 @@ export type TPropertyFilters = {
   minPrice?: number;
   maxPrice?: number;
   ownerId?: string;
+  // Admin and landlord lists only; public lists are always APPROVED.
+  reviewStatus?: TReviewStatus;
 };
 
 export type TPropertyListOptions = {
   // Public lists leave SOLD homes out unless they're asked for by status.
   hideSold?: boolean;
+  // Public lists show only listings an admin approved.
+  approvedOnly?: boolean;
+};
+
+/** Who is asking for a property, when a token was sent (see optionalAuth). */
+export type TPropertyViewer = {
+  userId: string;
+  role: string;
+};
+
+export type TReviewProperty = {
+  status: Exclude<TReviewStatus, "PENDING">;
+  note?: string;
 };
 
 export type TCreateProperty = {

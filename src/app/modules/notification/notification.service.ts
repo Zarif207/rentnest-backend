@@ -134,10 +134,70 @@ const markAllAsRead = async (userId: string) => {
   return { updated: count };
 };
 
+/**
+ * Marks your unread notifications whose link starts with `linkPrefix` as read
+ * (e.g. opening /dashboard/admin/properties clears the "new listing" ones).
+ */
+const markReadByLink = async (userId: string, linkPrefix: string) => {
+  const { count } = await prisma.notification.updateMany({
+    where: {
+      userId,
+      isRead: false,
+      link: {
+        startsWith: linkPrefix,
+      },
+    },
+    data: {
+      isRead: true,
+    },
+  });
+
+  return { updated: count };
+};
+
+/**
+ * Your unread count, plus unread counts per link so the dashboard can badge
+ * each section. Notifications without a link count only toward the total.
+ */
+const getSummary = async (userId: string) => {
+  const where = {
+    userId,
+    isRead: false,
+  };
+
+  const [unreadTotal, groups] = await Promise.all([
+    prisma.notification.count({ where }),
+    prisma.notification.groupBy({
+      by: ["link"],
+      where: {
+        ...where,
+        link: {
+          not: null,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    }),
+  ]);
+
+  return {
+    unreadTotal,
+    byLink: groups
+      .map((group) => ({
+        link: group.link as string,
+        count: group._count._all,
+      }))
+      .toSorted((a, b) => b.count - a.count || a.link.localeCompare(b.link)),
+  };
+};
+
 export const NotificationServices = {
   notify,
   notifyAdmins,
   getMyNotifications,
   markAsRead,
   markAllAsRead,
+  markReadByLink,
+  getSummary,
 };

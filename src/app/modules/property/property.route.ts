@@ -1,5 +1,6 @@
 import express from "express";
 import auth from "../../middlewares/auth.js";
+import optionalAuth from "../../middlewares/optionalAuth.js";
 import requireApprovedLandlord from "../../middlewares/requireApprovedLandlord.js";
 import validateRequest from "../../middlewares/validateRequest.js";
 import { PropertyControllers } from "./property.controller.js";
@@ -26,8 +27,10 @@ router.get(
   PropertyControllers.getPropertyStates,
 );
 
+// Owners and admins (with a token) also see listings still under review.
 router.get(
   "/:id",
+  optionalAuth,
   validateRequest(PropertyValidations.propertyIdValidationSchema),
   PropertyControllers.getPropertyById,
 );
@@ -38,7 +41,7 @@ const landlordRouter = express.Router();
 landlordRouter.get(
   "/",
   auth("LANDLORD"),
-  validateRequest(PropertyValidations.propertyQueryValidationSchema),
+  validateRequest(PropertyValidations.reviewablePropertyQueryValidationSchema),
   PropertyControllers.getMyProperties,
 );
 
@@ -72,8 +75,15 @@ const adminRouter = express.Router();
 adminRouter.get(
   "/",
   auth("ADMIN"),
-  validateRequest(PropertyValidations.propertyQueryValidationSchema),
+  validateRequest(PropertyValidations.reviewablePropertyQueryValidationSchema),
   PropertyControllers.getAllPropertiesForAdmin,
+);
+
+adminRouter.patch(
+  "/:id/review",
+  auth("ADMIN"),
+  validateRequest(PropertyValidations.reviewPropertyValidationSchema),
+  PropertyControllers.reviewProperty,
 );
 
 export const PropertyRoutes = router;

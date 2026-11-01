@@ -4,15 +4,45 @@ import httpStatus from "http-status";
 import AppError from "../../utils/AppError.js";
 import { paginationHelper } from "../../helpers/paginationHelper.js";
 import { TPaginationOptions } from "../../interfaces/pagination.js";
-import { propertySearchableFields } from "./property.constant.js";
+import {
+  ADMIN_REVIEW_LINK,
+  APPROVED_ONLY,
+  LANDLORD_PROPERTIES_LINK,
+  propertySearchableFields,
+  REVIEW_TRANSITIONS,
+} from "./property.constant.js";
 import { geocoder } from "../../helpers/geocoder.js";
+import { NotificationServices } from "../notification/notification.service.js";
 import {
   TCreateProperty,
   TListingType,
   TPropertyFilters,
   TPropertyListOptions,
+  TPropertyViewer,
+  TReviewProperty,
   TUpdateProperty,
 } from "./property.interface.js";
+
+// The admin's note and who reviewed a listing are for the landlord and the
+// admins, not the public.
+const PUBLIC_OMIT = { reviewNote: true, reviewedById: true } as const;
+
+const propertyInclude = {
+  category: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  owner: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+    },
+  },
+} as const;
 
 /** A listing's price range: rentAmount for RENT, salePrice for SALE. */
 const priceCondition = (
@@ -90,7 +120,17 @@ const createProperty = async (payload: TCreateProperty, ownerId: string) => {
       latitude: coordinates?.latitude ?? null,
       longitude: coordinates?.longitude ?? null,
       ownerId,
+
+      // Public only once an admin approves it.
+      reviewStatus: "PENDING",
     },
+  });
+
+  await NotificationServices.notifyAdmins({
+    type: "PROPERTY_SUBMITTED",
+    title: "New listing to review",
+    message: `${result.title} in ${result.city}, ${result.division} is waiting for review.`,
+    link: ADMIN_REVIEW_LINK,
   });
 
   return result;
@@ -105,6 +145,7 @@ const getAllProperties = async (
 
   const {
     ownerId,
+    reviewStatus,
     searchTerm,
     listingType,
     city,
@@ -121,6 +162,12 @@ const getAllProperties = async (
 
   if (ownerId) {
     andConditions.push({ ownerId });
+  }
+
+  if (listOptions.approvedOnly) {
+    andConditions.push(APPROVED_ONLY);
+  } else if (reviewStatus) {
+    andConditions.push({ reviewStatus });
   }
 
   if (listingType) {
@@ -215,22 +262,8 @@ const getAllProperties = async (
   const [data, total] = await Promise.all([
     prisma.property.findMany({
       where: whereConditions,
-      include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-          },
-        },
-      },
+      include: propertyInclude,
+      omit: listOptions.approvedOnly ? PUBLIC_OMIT : undefined,
       orderBy: buildOrderBy(sortBy, sortOrder as Prisma.SortOrder, listingType),
       skip,
       take: limit,
@@ -244,34 +277,34 @@ const getAllProperties = async (
   };
 };
 
-const getPropertyById = async (id: string) => {
+/**
+ * One property. Listings that aren't approved yet are visible only to their
+ * owner and to admins; everyone else gets the same 404 as a missing one.
+ */
+const getPropertyById = async (id: string, viewer?: TPropertyViewer) => {
   const result = await prisma.property.findUnique({
     where: {
       id,
     },
-    include: {
-      category: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      owner: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-        },
-      },
-    },
+    include: propertyInclude,
   });
 
-  if (!result) {
+  const canSeeUnreviewed =
+    viewer !== undefined &&
+    (viewer.role === "ADMIN" || viewer.userId === result?.ownerId);
+
+  if (!result || (result.reviewStatus !== "APPROVED" && !canSeeUnreviewed)) {
     throw new AppError(httpStatus.NOT_FOUND, "Property not found");
   }
 
-  return result;
+  if (canSeeUnreviewed) return result;
+
+  const {
+    reviewNote: _note,
+    reviewedById: _reviewer,
+    ...publicProperty
+  } = result;
+  return publicProperty;
 };
 
 const updateProperty = async (
@@ -381,6 +414,10 @@ const updateProperty = async (
     coordinates = found ?? { latitude: null, longitude: null };
   }
 
+  // Fixing a rejected listing sends it back to the admins; edits to a
+  // pending or approved one leave its review status as it is.
+  const resubmitted = property.reviewStatus === "REJECTED";
+
   const result = await prisma.property.update({
     where: {
       id,
@@ -389,6 +426,9 @@ const updateProperty = async (
       ...changes,
       ...prices,
       ...coordinates,
+      ...(resubmitted
+        ? { reviewStatus: "PENDING" as const, reviewNote: null }
+        : {}),
 
       propertyType: payload.propertyType
         ? (payload.propertyType as $Enums.PropertyType)
@@ -402,15 +442,94 @@ const updateProperty = async (
     },
   });
 
+  if (resubmitted) {
+    await NotificationServices.notifyAdmins({
+      type: "PROPERTY_SUBMITTED",
+      title: "Listing resubmitted for review",
+      message: `${result.title} in ${result.city}, ${result.division} was updated after a rejection and is waiting for review.`,
+      link: ADMIN_REVIEW_LINK,
+    });
+  }
+
   return result;
 };
 
 /**
- * Every state that has properties, busiest first (for the admin state picker
+ * An admin approves or rejects a listing. The update is conditional on the
+ * status it may come from (see REVIEW_TRANSITIONS), so two admins deciding
+ * at once can't both apply; the owner is notified only after it succeeds.
+ */
+const reviewProperty = async (
+  id: string,
+  adminId: string,
+  payload: TReviewProperty,
+) => {
+  const property = await prisma.property.findUnique({
+    where: { id },
+    select: { reviewStatus: true },
+  });
+
+  if (!property) {
+    throw new AppError(httpStatus.NOT_FOUND, "Property not found");
+  }
+
+  const from: readonly $Enums.PropertyReviewStatus[] =
+    REVIEW_TRANSITIONS[payload.status];
+  if (!from.includes(property.reviewStatus)) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      `This listing is already ${property.reviewStatus.toLowerCase()}`,
+    );
+  }
+
+  const { count } = await prisma.property.updateMany({
+    where: { id, reviewStatus: { in: [...from] } },
+    data: {
+      reviewStatus: payload.status,
+      reviewNote: payload.note ?? null,
+      reviewedAt: new Date(),
+      reviewedById: adminId,
+    },
+  });
+
+  if (count === 0) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      "This listing was just reviewed. Refresh and try again.",
+    );
+  }
+
+  const result = await prisma.property.findUniqueOrThrow({
+    where: { id },
+    include: propertyInclude,
+  });
+
+  await NotificationServices.notify(
+    result.ownerId,
+    payload.status === "APPROVED"
+      ? {
+          type: "PROPERTY_APPROVED",
+          title: "Listing approved",
+          message: `${result.title} is approved and now visible to everyone.`,
+          link: LANDLORD_PROPERTIES_LINK,
+        }
+      : {
+          type: "PROPERTY_REJECTED",
+          title: "Listing not approved",
+          message: `${result.title} wasn't approved: ${payload.note}. Edit the listing to send it for review again.`,
+          link: LANDLORD_PROPERTIES_LINK,
+        },
+  );
+
+  return result;
+};
+
+/**
+ * Every state that has approved properties, busiest first (for the admin state picker
  * and state landing pages); only one listing type's homes when it's given.
  */
 const getPropertyStates = async (listingType?: TListingType) => {
-  const where = listingType ? { listingType } : {};
+  const where = { ...APPROVED_ONLY, ...(listingType ? { listingType } : {}) };
   const [all, available] = await Promise.all([
     prisma.property.groupBy({
       by: ["division"],
@@ -443,7 +562,7 @@ const getPropertyStates = async (listingType?: TListingType) => {
 const MAP_LIMIT = 1000;
 
 /**
- * Every listed property with coordinates (sold homes left out), trimmed to
+ * Every approved property with coordinates (sold homes left out), trimmed to
  * what a map pin and popup need. `price` is whichever price applies.
  */
 const getMapProperties = async (listingType?: TListingType) => {
@@ -452,6 +571,7 @@ const getMapProperties = async (listingType?: TListingType) => {
       latitude: { not: null },
       longitude: { not: null },
       availabilityStatus: { not: "SOLD" },
+      ...APPROVED_ONLY,
       ...(listingType ? { listingType } : {}),
     },
     select: {
@@ -519,4 +639,5 @@ export const PropertyServices = {
   deleteProperty,
   getMapProperties,
   getPropertyStates,
+  reviewProperty,
 };

@@ -153,11 +153,18 @@ const createOffer = async (buyerId: string, payload: TCreateOffer) => {
       ownerId: true,
       listingType: true,
       availabilityStatus: true,
+      reviewStatus: true,
     },
   });
 
   if (!property) {
     throw new AppError(httpStatus.NOT_FOUND, "Property not found");
+  }
+  if (property.reviewStatus !== "APPROVED") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "This listing hasn't been approved yet",
+    );
   }
   if (property.listingType !== "SALE") {
     throw new AppError(

@@ -13,7 +13,7 @@
 - [Tenant: rentals, payments, reviews](#tenant)
 - [Tenant favorites](#tenant-favorites)
 - [Landlord: properties, requests, reviews](#landlord)
-- [Admin: users, properties, rentals, categories](#admin)
+- [Admin: users, properties (review), rentals, categories](#admin)
 - [Buy & sell: offers and deposits](#buy--sell)
 - [Homepage settings](#homepage-settings)
 - [Notifications: any signed-in role](#notifications)
@@ -195,6 +195,8 @@ Auth: any role. Updates the signed-in user's own profile. At least one field is 
 
 ## Public
 
+**Only approved listings are public.** Every property has a `reviewStatus` (`PENDING`, `APPROVED` or `REJECTED`): new listings start `PENDING` until an admin approves them (see [Property review](#property-review)). Every public endpoint (property list, map, states, details, a property's reviews and the homepage) shows only `APPROVED` listings, and leaves out `reviewNote` and `reviewedById`.
+
 ### `GET /api/properties`
 
 No auth. Search, filter, paginate and sort properties. Lists both rentals and homes for sale unless `listingType` is given. **Sold homes are left out** unless you ask for them with `availabilityStatus=SOLD` (a sold home's own page, `GET /api/properties/:id`, still works).
@@ -254,7 +256,7 @@ _(Each property also includes `description`, `address`, `division`, `bedrooms`, 
 
 ### `GET /api/properties/map`
 
-No auth. Every property that has coordinates (newest first, at most 1000, sold homes left out), trimmed for map pins. Optional `?listingType=RENT|SALE`. `price` is whichever price applies (rent or sale price). Not paginated. Sent with `Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=600`.
+No auth. Every approved property that has coordinates (newest first, at most 1000, sold homes left out), trimmed for map pins. Optional `?listingType=RENT|SALE`. `price` is whichever price applies (rent or sale price). Not paginated. Sent with `Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=600`.
 
 **200**
 
@@ -283,13 +285,14 @@ No auth. Every property that has coordinates (newest first, at most 1000, sold h
 
 ### `GET /api/properties/states`
 
-No auth. Every state that has properties, busiest first (used by the admin state picker and state pages). Optional `?listingType=RENT|SALE` counts only that type. Cached like `/map`.
+No auth. Every state that has approved properties, busiest first (used by the admin state picker and state pages). Optional `?listingType=RENT|SALE` counts only that type. Cached like `/map`.
 
 **200** → `data`: `[{ "state": "New York", "propertyCount": 2, "availableCount": 1 }, …]`
 
 ### `GET /api/properties/:id`
 
-No auth. `:id` must be a uuid. **200** → property with `category` and `owner` (sold homes too).
+Token optional. `:id` must be a uuid. **200** → property with `category` and `owner` (sold homes too).
+A listing that isn't approved yet returns **404**, exactly like a missing one, except to its **owner** and to **admins** when they send their token; they get the full property, including `reviewStatus`, `reviewNote`, `reviewedAt` and `reviewedById`. An invalid or expired token is ignored (the request is treated as anonymous).
 **Errors:** 400 invalid id · 404 `Property not found`.
 
 ### `GET /api/categories`
@@ -303,7 +306,7 @@ No auth. **200** → one category. **Errors:** 400 invalid id · 404 `Category n
 ### `GET /api/reviews/property/:propertyId`
 
 No auth. **200** → reviews for the property (newest first) with reviewer `{ id, name }`. Not paginated.
-**Errors:** 400 invalid id · 404 `Property not found`.
+**Errors:** 400 invalid id · 404 `Property not found` (also for a listing that isn't approved).
 
 ---
 
@@ -322,7 +325,7 @@ Submit a rental request.
 | `leaseMonths` | number | positive integer (JSON number, not a string)        |
 
 `totalRent` is calculated as `rentAmount × leaseMonths`. **201** → booking (`bookingStatus: "PENDING"`) with its property.
-**Errors:** 400 validation · 400 `This home is for sale, not for rent. Make an offer instead.` (a `SALE` listing; see [Buy & sell](#buy--sell)) · 400 `This property is not available for rent` · 404 `Property not found` · 409 `You already have a pending rental request for this property`.
+**Errors:** 400 validation · 400 `This listing hasn't been approved yet` · 400 `This home is for sale, not for rent. Make an offer instead.` (a `SALE` listing; see [Buy & sell](#buy--sell)) · 400 `This property is not available for rent` · 404 `Property not found` · 409 `You already have a pending rental request for this property`.
 
 ### `GET /api/rentals`
 
@@ -454,12 +457,12 @@ Your saved homes, newest first, with the property summary (`image` is the first 
 
 ### `POST /api/favorites`
 
-| Field        | Type | Rules      |
-| ------------ | ---- | ---------- |
-| `propertyId` | uuid | must exist |
+| Field        | Type | Rules               |
+| ------------ | ---- | ------------------- |
+| `propertyId` | uuid | an approved listing |
 
 Idempotent. **201** `Saved to favorites` → the new favorite · **200** `Already in favorites` → the existing one.
-**Errors:** 400 validation · 404 `Property not found`.
+**Errors:** 400 validation · 404 `Property not found` (also for a listing that isn't approved).
 
 ### `DELETE /api/favorites/:propertyId`
 
@@ -476,7 +479,7 @@ The write routes (`POST`/`PUT`/`DELETE /api/landlord/properties`, `PATCH /api/la
 
 ### `GET /api/landlord/properties`
 
-Your properties, with the same filters, sorting and pagination as [`GET /api/properties`](#get-apiproperties).
+All your properties, **whatever their review status**, with the same filters, sorting and pagination as [`GET /api/properties`](#get-apiproperties), plus `reviewStatus` (`PENDING` \| `APPROVED` \| `REJECTED`). Each property includes `reviewStatus` and `reviewNote` (the admin's reason when it was rejected). To read one of your own listings that isn't approved yet, call [`GET /api/properties/:id`](#get-apipropertiesid) with your token.
 
 ### `POST /api/landlord/properties`
 
@@ -495,7 +498,7 @@ Your properties, with the same filters, sorting and pagination as [`GET /api/pro
 | `images`                                  | string[] | at least 1, valid URLs                                                                                          |
 | `latitude`, `longitude`                   | number   | optional, together; −90..90 and −180..180                                                                       |
 
-Numbers may be sent as numbers or numeric strings. **201** → created property (`availabilityStatus: "AVAILABLE"`).
+Numbers may be sent as numbers or numeric strings. **201** → created property (`availabilityStatus: "AVAILABLE"`, `reviewStatus: "PENDING"`). The listing isn't public until an admin approves it; every active admin gets a `PROPERTY_SUBMITTED` notification.
 
 **Coordinates:** if `latitude`/`longitude` aren't sent, the server looks the address up with OpenStreetMap Nominatim (`address, city, state`, US only, 5 s timeout). If that fails, the property is saved with `latitude`/`longitude` `null`; geocoding never fails the request.
 **Errors:** 400 validation · 404 `Category not found`.
@@ -505,6 +508,7 @@ Numbers may be sent as numbers or numeric strings. **201** → created property 
 Update any subset of the create fields, plus `availabilityStatus` (`AVAILABLE` \| `RENTED`, rentals only) to set availability. Empty body → 400.
 Only the price for the listing's type is kept (the other one is `null`). `listingType` can change only while the home has no rental requests and no offers (→ 409 otherwise); switching type needs the new type's price if the home doesn't have one yet (→ 400). A type change also resets `availabilityStatus` to `AVAILABLE`. A home for sale's status changes only through its offers, so `availabilityStatus` on a `SALE` listing → 400.
 Sending `latitude` + `longitude` sets the pin. Otherwise, if `address`, `city` or `division` actually changed, the new address is geocoded (coordinates become `null` if that fails, since the old pin would be wrong).
+**Review:** editing a `REJECTED` listing sends it back for review: `reviewStatus` becomes `PENDING`, `reviewNote` is cleared and the admins are notified again (`PROPERTY_SUBMITTED`). Editing a `PENDING` or `APPROVED` listing doesn't change its review status.
 **Errors:** 400 validation · 403 `You are not allowed to update this property` · 404 property/category not found.
 
 ### `DELETE /api/landlord/properties/:id`
@@ -585,7 +589,21 @@ Approve or reject a landlord. Approval takes effect immediately (the check reads
 
 ### `GET /api/admin/properties`
 
-All properties, with the same filters, sorting and pagination as [`GET /api/properties`](#get-apiproperties).
+All properties, whatever their review status, with the same filters, sorting and pagination as [`GET /api/properties`](#get-apiproperties), plus `reviewStatus` (`PENDING` \| `APPROVED` \| `REJECTED`). Each property includes `reviewStatus`, `reviewNote`, `reviewedAt` and `reviewedById`. Listings waiting for review: `?reviewStatus=PENDING`.
+
+### `PATCH /api/admin/properties/:id/review`
+
+<a id="property-review"></a>Approve or reject a listing. Only `APPROVED` listings are public.
+
+| Field    | Type   | Rules                                                                           |
+| -------- | ------ | ------------------------------------------------------------------------------- |
+| `status` | enum   | `APPROVED` \| `REJECTED`                                                        |
+| `note`   | string | trimmed, 3–500 characters; **required when `REJECTED`** (shown to the landlord) |
+
+Allowed moves: `PENDING` → `APPROVED` or `REJECTED`, and `REJECTED` → `APPROVED`. An approved listing stays approved. The update only applies if the listing is still in a status it may move from, so two admins deciding at the same time can't both apply: the second one gets **409**. Sets `reviewNote` (the note, or `null`), `reviewedAt` and `reviewedById`. After it succeeds, the owner gets `PROPERTY_APPROVED`, or `PROPERTY_REJECTED` with the note.
+
+**200** `Property approved` / `Property rejected` → the property with `category` and `owner`.
+**Errors:** 400 validation (e.g. `note` missing on a rejection) · 404 `Property not found` · 409 `This listing is already approved` / `This listing is already rejected` · 409 `This listing was just reviewed. Refresh and try again.`
 
 ### `GET /api/admin/rentals`
 
@@ -696,7 +714,7 @@ Auth: **TENANT**. Make an offer on a home for sale.
 | `message`     | string | optional, at most 500 characters     |
 
 **201** → the offer (`status: "PENDING"`).
-**Errors:** 400 validation · 400 `This home is for rent. Send a rental request instead.` · 400 `This home is not accepting offers` · 404 `Property not found` · 409 `You already have an open offer on this home`.
+**Errors:** 400 validation · 400 `This listing hasn't been approved yet` · 400 `This home is for rent. Send a rental request instead.` · 400 `This home is not accepting offers` · 404 `Property not found` · 409 `You already have an open offer on this home`.
 
 ### `GET /api/offers`
 
@@ -826,7 +844,8 @@ Rules: no duplicate property ids, states, types or sections; `state` accepts a n
 
 No auth. The config **resolved** for rendering, with `isDefault` and `updatedAt`. Cached briefly (`s-maxage=60`).
 
-- `hero.properties`, `featured.properties`: full property objects (same shape as `GET /api/properties`) in the admin's order; ids that no longer exist are dropped.
+- Only **approved** listings appear anywhere on the homepage, and every count and starting price counts approved listings only. The defaults are built from approved listings too.
+- `hero.properties`, `featured.properties`: full property objects (same shape as `GET /api/properties`) in the admin's order; ids that no longer exist or aren't approved are dropped.
 - `states.items[]`: `{ state, imageUrl, propertyCount, startingPrice, rent, sale }`, live from **available** properties whose `division` is that state. `rent` and `sale` are `{ count, startingPrice }` for each listing type (`startingPrice` is the lowest monthly rent or sale price, a string, or `null`). `propertyCount` and `startingPrice` are kept as before and equal `rent.count` and `rent.startingPrice`.
 - `propertyTypes.items[]`: `{ type, imageUrl, propertyCount, rentCount, saleCount }` (`propertyCount` counts both types); `imageUrl` falls back to a photo of a listing of that type.
 - `latest.properties`: the newest `count` properties.
@@ -899,23 +918,25 @@ All routes below need a token for **any role** (`TENANT`, `LANDLORD` or `ADMIN`)
 
 Notifications are created automatically **after** the action that triggers them succeeds; a failed notification is logged and never fails that action.
 
-| Trigger                                        | Who is notified                     | `type`                                                  | `link`                                                        |
-| ---------------------------------------------- | ----------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------- |
-| A landlord registers                           | every active admin                  | `LANDLORD_REGISTERED`                                   | `/dashboard/admin/users?landlordStatus=PENDING`               |
-| Admin approves / rejects a landlord            | that landlord                       | `LANDLORD_APPROVED` / `LANDLORD_REJECTED`               | `/dashboard/landlord` / `/contact`                            |
-| Tenant creates a rental request                | the property's landlord             | `RENTAL_REQUESTED`                                      | `/dashboard/landlord/requests`                                |
-| Landlord approves / rejects a request          | the tenant                          | `RENTAL_APPROVED` / `RENTAL_REJECTED`                   | the pay page / `/dashboard/tenant/requests`                   |
-| Payment becomes `PAID` (webhook or `/confirm`) | tenant and landlord                 | `PAYMENT_SUCCESS` / `PAYMENT_RECEIVED`                  | `/dashboard/tenant/payments` / `/dashboard/landlord/requests` |
-| Landlord completes a rental                    | the tenant                          | `RENTAL_COMPLETED`                                      | `/dashboard/tenant/requests`                                  |
-| Tenant posts a review                          | the property's landlord             | `REVIEW_RECEIVED`                                       | `/dashboard/landlord/reviews`                                 |
-| Admin bans / unbans a user (status changed)    | that user                           | `ACCOUNT_BLOCKED` / `ACCOUNT_UNBLOCKED`                 | none                                                          |
-| Buyer makes an offer                           | the home's owner                    | `OFFER_RECEIVED`                                        | `/dashboard/landlord/offers`                                  |
-| Owner accepts / rejects / counters an offer    | the buyer                           | `OFFER_ACCEPTED` / `OFFER_REJECTED` / `OFFER_COUNTERED` | `/dashboard/tenant/offers`                                    |
-| Buyer accepts a counteroffer                   | the owner                           | `OFFER_ACCEPTED`                                        | `/dashboard/landlord/offers`                                  |
-| Buyer withdraws an offer                       | the owner                           | `OFFER_WITHDRAWN`                                       | `/dashboard/landlord/offers`                                  |
-| Deposit becomes `PAID` (webhook or `/confirm`) | buyer and owner                     | `DEPOSIT_PAID` / `DEPOSIT_RECEIVED`                     | `/dashboard/tenant/offers` / `/dashboard/landlord/offers`     |
-| …and the home goes under contract              | other buyers with open offers on it | `OFFER_REJECTED`                                        | `/dashboard/tenant/offers`                                    |
-| Owner completes the sale                       | the buyer                           | `SALE_COMPLETED`                                        | `/dashboard/tenant/offers`                                    |
+| Trigger                                             | Who is notified                           | `type`                                                  | `link`                                                        |
+| --------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------- |
+| A landlord registers                                | every active admin                        | `LANDLORD_REGISTERED`                                   | `/dashboard/admin/users?landlordStatus=PENDING`               |
+| Admin approves / rejects a landlord                 | that landlord                             | `LANDLORD_APPROVED` / `LANDLORD_REJECTED`               | `/dashboard/landlord` / `/contact`                            |
+| Tenant creates a rental request                     | the property's landlord                   | `RENTAL_REQUESTED`                                      | `/dashboard/landlord/requests`                                |
+| Landlord approves / rejects a request               | the tenant                                | `RENTAL_APPROVED` / `RENTAL_REJECTED`                   | the pay page / `/dashboard/tenant/requests`                   |
+| Payment becomes `PAID` (webhook or `/confirm`)      | tenant and landlord                       | `PAYMENT_SUCCESS` / `PAYMENT_RECEIVED`                  | `/dashboard/tenant/payments` / `/dashboard/landlord/requests` |
+| Landlord completes a rental                         | the tenant                                | `RENTAL_COMPLETED`                                      | `/dashboard/tenant/requests`                                  |
+| Tenant posts a review                               | the property's landlord                   | `REVIEW_RECEIVED`                                       | `/dashboard/landlord/reviews`                                 |
+| Admin bans / unbans a user (status changed)         | that user                                 | `ACCOUNT_BLOCKED` / `ACCOUNT_UNBLOCKED`                 | none                                                          |
+| Buyer makes an offer                                | the home's owner                          | `OFFER_RECEIVED`                                        | `/dashboard/landlord/offers`                                  |
+| Owner accepts / rejects / counters an offer         | the buyer                                 | `OFFER_ACCEPTED` / `OFFER_REJECTED` / `OFFER_COUNTERED` | `/dashboard/tenant/offers`                                    |
+| Buyer accepts a counteroffer                        | the owner                                 | `OFFER_ACCEPTED`                                        | `/dashboard/landlord/offers`                                  |
+| Buyer withdraws an offer                            | the owner                                 | `OFFER_WITHDRAWN`                                       | `/dashboard/landlord/offers`                                  |
+| Deposit becomes `PAID` (webhook or `/confirm`)      | buyer and owner                           | `DEPOSIT_PAID` / `DEPOSIT_RECEIVED`                     | `/dashboard/tenant/offers` / `/dashboard/landlord/offers`     |
+| …and the home goes under contract                   | other buyers with open offers on it       | `OFFER_REJECTED`                                        | `/dashboard/tenant/offers`                                    |
+| Owner completes the sale                            | the buyer                                 | `SALE_COMPLETED`                                        | `/dashboard/tenant/offers`                                    |
+| Landlord creates a listing, or edits a rejected one | every active admin                        | `PROPERTY_SUBMITTED`                                    | `/dashboard/admin/properties?review=PENDING`                  |
+| Admin approves / rejects a listing                  | the owner (a rejection includes the note) | `PROPERTY_APPROVED` / `PROPERTY_REJECTED`               | `/dashboard/landlord/properties`                              |
 
 A payment (or deposit) is notified only by the call that actually marks it paid, so the webhook and `POST /api/payments/confirm` (or `POST /api/offers/confirm`) never notify twice.
 
@@ -965,6 +986,37 @@ Marks one of your notifications as read. **200** → the updated notification.
 ### `PATCH /api/notifications/read-all`
 
 Marks all your unread notifications as read. **200** → `{ "updated": <count> }`.
+
+### `GET /api/notifications/summary`
+
+Your unread notifications counted per `link`, so a dashboard can show a badge on each section. Notifications without a link count only toward `unreadTotal`. `byLink` is sorted by count, highest first.
+
+**200**
+
+```json
+{
+  "success": true,
+  "message": "Notification summary retrieved successfully",
+  "data": {
+    "unreadTotal": 5,
+    "byLink": [
+      { "link": "/dashboard/admin/properties?review=PENDING", "count": 3 },
+      { "link": "/dashboard/admin/users?landlordStatus=PENDING", "count": 1 }
+    ]
+  }
+}
+```
+
+### `PATCH /api/notifications/read-by-link`
+
+Marks your unread notifications whose `link` **starts with** `linkPrefix` as read (e.g. opening the admin properties page clears its "new listing" notifications).
+
+| Field        | Type   | Rules                                                     |
+| ------------ | ------ | --------------------------------------------------------- |
+| `linkPrefix` | string | trimmed, must start with `/dashboard/`, at most 300 chars |
+
+**200** → `{ "updated": <count> }`. `"/dashboard/admin/properties"` matches `/dashboard/admin/properties?review=PENDING`.
+**Errors:** 400 validation.
 
 ---
 

@@ -13,11 +13,24 @@ router.get(
   NotificationControllers.getMyNotifications,
 );
 
-// Before "/:id/read" so "read-all" isn't taken for an id.
+router.get(
+  "/summary",
+  auth("TENANT", "LANDLORD", "ADMIN"),
+  NotificationControllers.getSummary,
+);
+
+// Before "/:id/read" so "read-all" and "read-by-link" aren't taken for ids.
 router.patch(
   "/read-all",
   auth("TENANT", "LANDLORD", "ADMIN"),
   NotificationControllers.markAllAsRead,
+);
+
+router.patch(
+  "/read-by-link",
+  auth("TENANT", "LANDLORD", "ADMIN"),
+  validateRequest(NotificationValidation.readByLinkValidationSchema),
+  NotificationControllers.markReadByLink,
 );
 
 router.patch(

@@ -1,7 +1,10 @@
 import prisma from "../../../lib/prisma.js";
 import { Prisma } from "../../../../generated/prisma/client.js";
 import { normalizeUsState } from "../../constants/usStates.js";
-import { PROPERTY_TYPES } from "../property/property.constant.js";
+import {
+  APPROVED_ONLY,
+  PROPERTY_TYPES,
+} from "../property/property.constant.js";
 import {
   DEFAULT_SECTION_ORDER,
   HOMEPAGE_KEY,
@@ -10,7 +13,11 @@ import {
 import { SiteSettingValidation } from "./siteSetting.validation.js";
 import { THomepageConfig } from "./siteSetting.interface.js";
 
+// Everything on the homepage is public, so it only ever shows approved
+// listings (a saved id that isn't approved is dropped like a deleted one).
 // Same shape as the property list endpoints, so the frontend reuses its types.
+const propertyOmit = { reviewNote: true, reviewedById: true } as const;
+
 const propertyInclude = {
   category: {
     select: {
@@ -31,13 +38,14 @@ const propertyInclude = {
 const firstImage = (images: unknown) =>
   Array.isArray(images) && typeof images[0] === "string" ? images[0] : null;
 
-/** Full properties in the given order; ids that no longer exist are dropped. */
+/** Full properties in the given order; ids that no longer exist (or aren't approved) are dropped. */
 const findPropertiesInOrder = async (ids: string[]) => {
   if (ids.length === 0) return [];
 
   const properties = await prisma.property.findMany({
-    where: { id: { in: ids } },
+    where: { id: { in: ids }, ...APPROVED_ONLY },
     include: propertyInclude,
+    omit: propertyOmit,
   });
   const byId = new Map(properties.map((property) => [property.id, property]));
 
@@ -51,12 +59,14 @@ const findPropertiesInOrder = async (ids: string[]) => {
 const buildDefaultConfig = async (): Promise<THomepageConfig> => {
   const [newest, stateGroups] = await Promise.all([
     prisma.property.findMany({
+      where: APPROVED_ONLY,
       select: { id: true },
       orderBy: { createdAt: "desc" },
       take: Math.max(HOMEPAGE_LIMITS.defaultFeatured, HOMEPAGE_LIMITS.hero),
     }),
     prisma.property.groupBy({
       by: ["division"],
+      where: APPROVED_ONLY,
       _count: { _all: true },
       orderBy: { _count: { division: "desc" } },
       take: HOMEPAGE_LIMITS.states,
@@ -70,7 +80,7 @@ const buildDefaultConfig = async (): Promise<THomepageConfig> => {
     if (!state || states.some((item) => item.state === state)) continue;
 
     const withImage = await prisma.property.findFirst({
-      where: { division: group.division },
+      where: { division: group.division, ...APPROVED_ONLY },
       select: { images: true },
       orderBy: { createdAt: "desc" },
     });
@@ -128,18 +138,21 @@ const resolveConfig = async (config: THomepageConfig) => {
       findPropertiesInOrder(config.hero.propertyIds),
       findPropertiesInOrder(config.featured.propertyIds),
       prisma.property.findMany({
+        where: APPROVED_ONLY,
         include: propertyInclude,
+        omit: propertyOmit,
         orderBy: { createdAt: "desc" },
         take: config.latest.count,
       }),
       prisma.property.groupBy({
         by: ["division", "listingType"],
-        where: { availabilityStatus: "AVAILABLE" },
+        where: { availabilityStatus: "AVAILABLE", ...APPROVED_ONLY },
         _count: { _all: true },
         _min: { rentAmount: true, salePrice: true },
       }),
       prisma.property.groupBy({
         by: ["propertyType", "listingType"],
+        where: APPROVED_ONLY,
         _count: { _all: true },
       }),
     ]);
@@ -189,7 +202,7 @@ const resolveConfig = async (config: THomepageConfig) => {
       let imageUrl = item.imageUrl ?? null;
       if (!imageUrl) {
         const listing = await prisma.property.findFirst({
-          where: { propertyType: item.type },
+          where: { propertyType: item.type, ...APPROVED_ONLY },
           select: { images: true },
           orderBy: { createdAt: "desc" },
         });
