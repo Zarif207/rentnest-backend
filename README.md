@@ -1,6 +1,6 @@
 # 🏠 RentNest API
 
-**Find & list rental properties with ease.** A REST API for a rental marketplace where landlords list properties, tenants request and pay for rentals through Stripe, and admins moderate the platform.
+**Rent or buy a home, in one API.** A REST API for a US home marketplace: landlords list homes for rent or sale, tenants request rentals and make offers, payments run through Stripe, and admins approve landlords and review every listing.
 
 ![Node.js](https://img.shields.io/badge/Node.js-24.x-339933?logo=nodedotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)
@@ -9,28 +9,52 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
 ![Stripe](https://img.shields.io/badge/Stripe-Checkout-635BFF?logo=stripe&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?logo=vercel&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-blue)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+## Contents
+
+1. [Links](#-links)
+2. [Demo accounts](#-demo-accounts)
+3. [Security](#-security)
+4. [Overview](#overview)
+5. [Features](#features)
+6. [Tech stack](#tech-stack)
+7. [Architecture](#architecture)
+8. [Project structure](#project-structure)
+9. [Database](#database)
+10. [Payment flow](#payment-flow)
+11. [API reference](#api-reference)
+12. [Response & error format](#response--error-format)
+13. [Filtering, search, pagination & sorting](#filtering-search-pagination--sorting)
+14. [Getting started](#getting-started)
+15. [Scripts](#scripts)
+16. [Deployment](#deployment)
+17. [Testing with Postman](#testing-with-postman)
+18. [Technical challenges solved](#technical-challenges-solved)
+19. [Known limitations & future improvements](#known-limitations--future-improvements)
+20. [Author](#author)
+21. [License](#license)
 
 ## 🔗 Links
 
-|                        |                                                                                                                                         |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Live API**           | https://rentnest-backend-one.vercel.app                                                                                                 |
-| **API docs (Postman)** | _Published Postman link coming soon._ Collection file: [`docs/RentNest.postman_collection.json`](docs/RentNest.postman_collection.json) |
-| **API reference**      | [`docs/api.md`](docs/api.md)                                                                                                            |
-| **Database diagram**   | [DrawSQL](https://drawsql.app/teams/zarif-hasan/diagrams/rentnest) · [`docs/ERD.md`](docs/ERD.md)                                       |
-| **Demo video**         | _Coming soon_                                                                                                                           |
+|                     |                                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------- |
+| **Live API**        | https://rentnest-backend-one.vercel.app                                                           |
+| **Frontend**        | [Zarif207/RentNest](https://github.com/Zarif207/RentNest) (Next.js)                               |
+| **API reference**   | [`docs/api.md`](docs/api.md)                                                                      |
+| **Postman**         | [`docs/RentNest.postman_collection.json`](docs/RentNest.postman_collection.json)                  |
+| **Database design** | [`docs/ERD.md`](docs/ERD.md) · [DrawSQL](https://drawsql.app/teams/zarif-hasan/diagrams/rentnest) |
 
-## 🔑 Test credentials
+## 🔑 Demo accounts
 
-| Role                 | Email                                               | Password                        |
-| -------------------- | --------------------------------------------------- | ------------------------------- |
-| Admin                | `admin@rentnest.com`                                | _shared privately with graders_ |
-| Landlord             | `landlord1@rentnest.com` · `landlord2@rentnest.com` | `Password@123`                  |
-| Tenant               | `tenant1@rentnest.com` · `tenant2@rentnest.com`     | `Password@123`                  |
-| Observer (read-only) | `observer@rentnest.dev`                             | _shared privately with graders_ |
+| Role                 | Email                   | Password          |
+| -------------------- | ----------------------- | ----------------- |
+| Tenant               | `tenant1@rentnest.com`  | `Password@123`    |
+| Observer (read-only) | `observer@rentnest.dev` | `Observer-Demo-1` |
 
-The **observer** account can open every admin and landlord screen but change nothing: writes return 403 and emails, phone numbers and Stripe ids are masked. Create it with `npm run observer:create` (see [docs/api.md](docs/api.md#observer-read-only-accounts)).
+Both are public demo values. Admin and landlord accounts are private; use the observer account to explore the admin and landlord endpoints read-only.
+
+The **observer** can read every admin and landlord endpoint but change nothing: writes return 403 ("Observer accounts are read-only") and other people's emails, phone numbers and Stripe IDs are masked. Create it with `npm run observer:create` (see [docs/api.md](docs/api.md#observer-read-only-accounts)).
 
 **Stripe test card:** `4242 4242 4242 4242`, any future expiry date, any CVC. Payments run in Stripe **test mode**; no real money is charged.
 
@@ -46,18 +70,19 @@ See [docs/api.md](docs/api.md#security-limits) for the exact limits.
 
 ## Overview
 
-RentNest is the backend for a rental marketplace with three roles, chosen at registration (admins are created by the seed):
+RentNest is the backend for a US home marketplace with three roles chosen at registration or created by scripts, plus a read-only observer:
 
-- **Tenant:** browses and searches listings, requests a rental, pays once the landlord approves, and reviews the property after the rental is completed.
-- **Landlord:** lists and manages properties, approves or rejects requests, completes rentals and reads tenant reviews.
-- **Admin:** bans or unbans users, approves or rejects new listings, oversees all listings and rentals, and manages property categories.
+- **Tenant:** searches homes, requests a rental and pays once the landlord approves, makes offers on homes for sale and pays the deposit, saves favorites, and reviews a home after renting it.
+- **Landlord:** lists homes for rent or sale (after an admin approves the account), answers rental requests and offers, completes rentals and sales, and reads reviews.
+- **Admin:** approves landlords, reviews every listing, blocks or unblocks users, oversees rentals and offers, manages categories and configures the homepage. Admins are created by the seed.
+- **Observer:** reads everything an admin or landlord can, changes nothing (made with `npm run observer:create`).
 
 ## Features
 
 <details open>
 <summary><b>Public</b></summary>
 
-- Only listings an admin has **approved** are public (lists, map, states, details, reviews, homepage)
+- Only listings an admin has **approved** are public (lists, map, states, details, reviews, homepage); rented and sold homes leave the public lists but keep their details page
 - Browse properties with **search** (title, description, city, address), **filters** (city, state (`division`), property type, category, amenities, availability, price range), **pagination** and **sorting**
 - Property details with category and landlord contact
 - List categories and a property's reviews
@@ -90,13 +115,32 @@ RentNest is the backend for a rental marketplace with three roles, chosen at reg
 </details>
 
 <details>
+<summary><b>Buying and offers</b></summary>
+
+- Homes are listed for rent or for sale (`listingType`)
+- A tenant makes an offer; the owner accepts, rejects or counters; the tenant can accept a counter or withdraw
+- The buyer pays an earnest-money deposit through Stripe Checkout, the home goes under contract, and the owner completes the sale
+- Offers with no action for 7 days expire
+
+</details>
+
+<details>
+<summary><b>Favorites and notifications</b></summary>
+
+- Tenants save and remove favorite homes
+- Every role gets notifications (list, mark read, mark all read) and a per-link unread summary for dashboard badges
+
+</details>
+
+<details>
 <summary><b>Admin</b></summary>
 
 - List users with search, role/status filters and pagination
-- Ban/unban users (blocked users can't log in or use protected routes; admins can't be blocked)
+- Ban/unban users (blocked users can't log in or use protected routes; admins can't be blocked) and approve or reject landlord accounts
 - Review new listings: approve, or reject with a note for the landlord (filter `?reviewStatus=PENDING`)
 - View all properties and all rental requests (filter by status, paginated)
 - Create, rename and delete categories
+- Configure the homepage (hero and featured homes, state tiles, type images, section order)
 
 </details>
 
@@ -161,6 +205,7 @@ flowchart LR
 ├── prisma/
 │   ├── schema/                  # Multi-file Prisma schema (one file per model + enums)
 │   ├── migrations/              # SQL migrations
+│   ├── scripts/                 # One-off scripts (observer, admin password, states, geocoding, offers)
 │   └── seed.ts                  # Idempotent seed: admin, demo users, categories, properties
 ├── src/
 │   ├── server.ts                # Local entry (app.listen)
@@ -169,13 +214,14 @@ flowchart LR
 │   ├── lib/prisma.ts            # Prisma client with the pg driver adapter
 │   └── app/
 │       ├── routes/index.ts      # Mounts every module router under /api
-│       ├── middlewares/         # auth, validateRequest, globalErrorHandler, notFound
+│       ├── middlewares/         # auth, validateRequest, rate limits, observer guards, error handlers
 │       ├── errors/              # Zod, Prisma and JWT error mappers
 │       ├── helpers/             # JWT and pagination helpers
 │       ├── interfaces/          # Shared types (errors, pagination)
 │       ├── types/express.d.ts   # Adds req.user to Express's Request
 │       ├── utils/               # AppError, catchAsync, sendResponse, pick
-│       └── modules/             # auth, user, category, property, rental, landlord, payment, review
+│       └── modules/             # auth, user, admin, category, property, rental, landlord, offer,
+│                                #   payment, review, favorite, notification, siteSetting
 ├── prisma.config.ts             # Prisma CLI config (schema path, migrations, seed)
 └── vercel.json                  # Rewrites every path to the Express function
 ```
@@ -184,11 +230,11 @@ flowchart LR
 
 ## Database
 
-Six tables: **User**, **Category**, **Property**, **Booking** (rental request), **Payment**, **Review**. Highlights:
+Eleven tables: **User**, **Category**, **Property**, **Booking** (rental request), **Payment**, **Review**, **PurchaseOffer**, **OfferPayment** (deposit), **Favorite**, **Notification** and **SiteSetting**. The diagram shows the rental core. Highlights:
 
 - `Payment.bookingId` and `Review.bookingId` are **unique**: one payment and one review per rental.
-- Foreign keys use **RESTRICT** on delete, so rental and payment history can't be lost; `Property.categoryId` uses **SET NULL**.
-- Filter and sort columns are **indexed**: `Property(city, propertyType, rentAmount, ownerId)`, `Booking(tenantId, propertyId, bookingStatus)`, `Review(propertyId)`.
+- Foreign keys use **RESTRICT** on delete, so rental and payment history can't be lost; `Property.categoryId` uses **SET NULL**, and favorites are deleted with their user or property.
+- Filter and sort columns are **indexed**: `Property(city, propertyType, rentAmount, ownerId, listingType, reviewStatus)`, `Booking(tenantId, propertyId, bookingStatus)`, `Review(propertyId)`.
 
 ```mermaid
 erDiagram
@@ -267,47 +313,73 @@ sequenceDiagram
 
 ## API reference
 
-Full details (bodies, validation rules, examples, error codes): **[`docs/api.md`](docs/api.md)**.
+Every endpoint the API serves. Request and response shapes are in [`docs/api.md`](docs/api.md). The observer can call the `GET` endpoints marked Admin or Landlord.
 
-| Method | Path                                  | Role             | Description                                              |
-| ------ | ------------------------------------- | ---------------- | -------------------------------------------------------- |
-| GET    | `/`                                   | –                | Health check                                             |
-| POST   | `/api/auth/register`                  | –                | Register as `TENANT` or `LANDLORD`                       |
-| POST   | `/api/auth/login`                     | –                | Log in, returns a JWT                                    |
-| GET    | `/api/auth/me`                        | any              | Current user's profile                                   |
-| PATCH  | `/api/users/me`                       | any              | Update own name, email or phone                          |
-| GET    | `/api/properties`                     | –                | Search, filter, paginate, sort properties                |
-| GET    | `/api/properties/:id`                 | –                | Property details                                         |
-| GET    | `/api/categories`                     | –                | List categories                                          |
-| GET    | `/api/categories/:id`                 | –                | Category details                                         |
-| GET    | `/api/reviews/property/:propertyId`   | –                | Reviews for a property                                   |
-| POST   | `/api/rentals`                        | Tenant           | Submit a rental request                                  |
-| GET    | `/api/rentals`                        | Tenant           | My requests (`?status=`)                                 |
-| GET    | `/api/rentals/:id`                    | Tenant, Landlord | Request details (own / own property)                     |
-| POST   | `/api/payments/create`                | Tenant           | Create Stripe Checkout Session (`/checkout` is an alias) |
-| POST   | `/api/payments/confirm`               | Tenant           | Confirm a paid session                                   |
-| GET    | `/api/payments`                       | Tenant           | My payment history                                       |
-| GET    | `/api/payments/:id`                   | Tenant           | Payment details                                          |
-| POST   | `/api/reviews`                        | Tenant           | Review an active or completed rental                     |
-| GET    | `/api/landlord/properties`            | Landlord         | My properties                                            |
-| POST   | `/api/landlord/properties`            | Landlord         | Create a property                                        |
-| PUT    | `/api/landlord/properties/:id`        | Landlord         | Update a property / set availability                     |
-| DELETE | `/api/landlord/properties/:id`        | Landlord         | Delete a property                                        |
-| GET    | `/api/landlord/requests`              | Landlord         | Requests for my properties (`?status=`)                  |
-| PATCH  | `/api/landlord/requests/:id`          | Landlord         | Approve or reject                                        |
-| PATCH  | `/api/landlord/requests/:id/complete` | Landlord         | Complete an active rental                                |
-| GET    | `/api/landlord/reviews`               | Landlord         | Reviews on my properties                                 |
-| GET    | `/api/admin/users`                    | Admin            | List users                                               |
-| PATCH  | `/api/admin/users/:id`                | Admin            | Ban / unban a user                                       |
-| GET    | `/api/admin/properties`               | Admin            | All properties (`?reviewStatus=`)                        |
-| PATCH  | `/api/admin/properties/:id/review`    | Admin            | Approve or reject a listing                              |
-| GET    | `/api/admin/rentals`                  | Admin            | All rental requests                                      |
-| POST   | `/api/categories`                     | Admin            | Create a category                                        |
-| PUT    | `/api/categories/:id`                 | Admin            | Rename a category                                        |
-| DELETE | `/api/categories/:id`                 | Admin            | Delete an unused category                                |
-| GET    | `/api/notifications/summary`          | any              | Unread count, per link (dashboard badges)                |
-| PATCH  | `/api/notifications/read-by-link`     | any              | Mark unread notifications under a link as read           |
-| POST   | `/api/payments/webhook`               | Stripe           | Stripe webhook (signature verified)                      |
+| Method | Path                                     | Role             | Description                                    |
+| ------ | ---------------------------------------- | ---------------- | ---------------------------------------------- |
+| GET    | `/`                                      | –                | Health check                                   |
+| POST   | `/api/auth/register`                     | –                | Register as `TENANT` or `LANDLORD`             |
+| POST   | `/api/auth/login`                        | –                | Log in, returns a JWT                          |
+| GET    | `/api/auth/me`                           | any              | Current user's profile                         |
+| PATCH  | `/api/users/me`                          | any              | Update own name, email or phone                |
+| GET    | `/api/properties`                        | –                | Search, filter, paginate, sort properties      |
+| GET    | `/api/properties/map`                    | –                | Map pins (`?listingType=`)                     |
+| GET    | `/api/properties/states`                 | –                | States with listings, busiest first            |
+| GET    | `/api/properties/:id`                    | –                | Property details                               |
+| GET    | `/api/categories`                        | –                | List categories                                |
+| GET    | `/api/categories/:id`                    | –                | Category details                               |
+| GET    | `/api/reviews/property/:propertyId`      | –                | Reviews for a property                         |
+| GET    | `/api/site-settings/homepage`            | –                | Homepage configuration, resolved for rendering |
+| POST   | `/api/rentals`                           | Tenant           | Submit a rental request                        |
+| GET    | `/api/rentals`                           | Tenant           | My requests (`?status=`)                       |
+| GET    | `/api/rentals/:id`                       | Tenant, Landlord | Request details (own / own property)           |
+| POST   | `/api/payments/create`                   | Tenant           | Create a Stripe Checkout Session               |
+| POST   | `/api/payments/checkout`                 | Tenant           | Alias of `/create`                             |
+| POST   | `/api/payments/confirm`                  | Tenant           | Confirm a paid session                         |
+| GET    | `/api/payments`                          | Tenant           | My payment history                             |
+| GET    | `/api/payments/:id`                      | Tenant           | Payment details                                |
+| POST   | `/api/reviews`                           | Tenant           | Review an active or completed rental           |
+| POST   | `/api/offers`                            | Tenant           | Make an offer on a home for sale               |
+| GET    | `/api/offers`                            | Tenant           | My offers                                      |
+| GET    | `/api/offers/:id`                        | Tenant           | Offer details                                  |
+| PATCH  | `/api/offers/:id/accept-counter`         | Tenant           | Accept the owner's counter-offer               |
+| PATCH  | `/api/offers/:id/withdraw`               | Tenant           | Withdraw an offer                              |
+| POST   | `/api/offers/:id/deposit`                | Tenant           | Create a Checkout Session for the deposit      |
+| POST   | `/api/offers/confirm`                    | Tenant           | Confirm a paid deposit session                 |
+| GET    | `/api/offers/payments`                   | Tenant           | My deposit payments                            |
+| GET    | `/api/favorites`                         | Tenant           | My saved homes                                 |
+| GET    | `/api/favorites/ids`                     | Tenant           | IDs of my saved homes                          |
+| POST   | `/api/favorites`                         | Tenant           | Save a home                                    |
+| DELETE | `/api/favorites/:propertyId`             | Tenant           | Remove a saved home                            |
+| GET    | `/api/landlord/properties`               | Landlord         | My properties                                  |
+| POST   | `/api/landlord/properties`               | Landlord         | Create a property                              |
+| PUT    | `/api/landlord/properties/:id`           | Landlord         | Update a property / set availability           |
+| DELETE | `/api/landlord/properties/:id`           | Landlord         | Delete a property                              |
+| GET    | `/api/landlord/requests`                 | Landlord         | Requests for my properties (`?status=`)        |
+| PATCH  | `/api/landlord/requests/:id`             | Landlord         | Approve or reject                              |
+| PATCH  | `/api/landlord/requests/:id/complete`    | Landlord         | Complete an active rental                      |
+| GET    | `/api/landlord/reviews`                  | Landlord         | Reviews on my properties                       |
+| GET    | `/api/landlord/offers`                   | Landlord         | Offers on my homes                             |
+| PATCH  | `/api/landlord/offers/:id`               | Landlord         | Accept, reject or counter an offer             |
+| PATCH  | `/api/landlord/offers/:id/complete-sale` | Landlord         | Complete the sale after the deposit            |
+| GET    | `/api/admin/users`                       | Admin            | List users                                     |
+| PATCH  | `/api/admin/users/:id`                   | Admin            | Ban / unban a user                             |
+| PATCH  | `/api/admin/users/:id/landlord-status`   | Admin            | Approve or reject a landlord account           |
+| GET    | `/api/admin/properties`                  | Admin            | All properties (`?reviewStatus=`)              |
+| PATCH  | `/api/admin/properties/:id/review`       | Admin            | Approve or reject a listing                    |
+| GET    | `/api/admin/rentals`                     | Admin            | All rental requests                            |
+| GET    | `/api/admin/offers`                      | Admin            | All offers                                     |
+| GET    | `/api/admin/site-settings/homepage`      | Admin            | The raw homepage configuration                 |
+| PUT    | `/api/admin/site-settings/homepage`      | Admin            | Save the homepage configuration                |
+| POST   | `/api/categories`                        | Admin            | Create a category                              |
+| PUT    | `/api/categories/:id`                    | Admin            | Rename a category                              |
+| DELETE | `/api/categories/:id`                    | Admin            | Delete an unused category                      |
+| GET    | `/api/notifications`                     | any              | My notifications                               |
+| GET    | `/api/notifications/summary`             | any              | Unread count, per link (dashboard badges)      |
+| PATCH  | `/api/notifications/:id/read`            | any              | Mark one notification as read                  |
+| PATCH  | `/api/notifications/read-all`            | any              | Mark all notifications as read                 |
+| PATCH  | `/api/notifications/read-by-link`        | any              | Mark unread notifications under a link as read |
+| POST   | `/api/payments/webhook`                  | Stripe           | Stripe webhook (signature verified)            |
 
 ## Response & error format
 
@@ -404,7 +476,7 @@ npm run dev                 # http://localhost:4000
 | `PORT`                  |          | Local port (default `4000`; not used on Vercel)                                                                 |
 | `NODE_ENV`              |          | `production` hides unexpected error details (set automatically on Vercel)                                       |
 | `GEOCODER_EMAIL`        |          | Contact email in the User-Agent sent to OpenStreetMap Nominatim when geocoding property addresses               |
-| `ADMIN_EMAIL`           |          | Admin the seed creates and `admin:set-password` updates (default `admin@rentnest.com`)                          |
+| `ADMIN_EMAIL`           |          | Admin the seed creates and `admin:set-password` updates (required by both; kept private)                        |
 | `ADMIN_PASSWORD`        |          | Password for a new admin (seed) or the new password (`admin:set-password`: 12+ chars, letter, digit, symbol)    |
 | `ALLOW_PROD_SEED`       |          | `true` lets the seed run against a non-local database or with `NODE_ENV=production`                             |
 | `CORS_ORIGINS`          |          | Allowed browser origins, comma-separated (default `http://localhost:3000`)                                      |
@@ -450,10 +522,10 @@ The API runs on **Vercel** as a single serverless function:
 
 1. Import the GitHub repo into Vercel. Pushes to `main` deploy to production.
 2. Add the environment variables above in **Project → Settings → Environment Variables** (Production). `DATABASE_URL` comes from the connected database.
-3. Apply migrations and seed against the production database from your machine (with `DATABASE_URL` pointing to it):
+3. Apply migrations against the production database from your machine (with `DATABASE_URL` pointing to it). Seeding production is optional and refused unless `ALLOW_PROD_SEED=true`:
    ```bash
    npm run db:deploy
-   npm run seed
+   npm run seed   # optional, with ALLOW_PROD_SEED=true
    ```
 4. In the Stripe Dashboard (test mode) add a webhook endpoint:
    - URL: `https://rentnest-backend-one.vercel.app/api/payments/webhook`
@@ -464,10 +536,10 @@ The API runs on **Vercel** as a single serverless function:
 
 1. **Import** [`docs/RentNest.postman_collection.json`](docs/RentNest.postman_collection.json).
 2. **`baseUrl`** defaults to the live API (`https://rentnest-backend-one.vercel.app`). For local development, edit the collection variable `baseUrl` to `http://localhost:4000`.
-3. Run **Auth → Login as Admin / Landlord / Tenant**. Tokens are saved automatically (`adminToken`, `landlordToken`, `tenantToken`, and `token` for the last login). Each folder uses the right token.
+3. Run **Auth → Login as Tenant** or **Login as Observer (read-only)** (the demo values are filled in). Admin and landlord logins need the private `adminEmail` / `adminPassword` and `landlordEmail` / `landlordPassword` collection variables, or accounts from your own local seed. Tokens are saved automatically (`adminToken`, `landlordToken`, `tenantToken`, `observerToken`, and `token` for the last login). Each folder uses the right token.
 4. IDs (`propertyId`, `categoryId`, `rentalId`, `paymentId`, `sessionId`, `userId`) are captured from responses, so requests can be run in order.
 
-**Suggested demo order**
+**Suggested demo order** (steps for admins and landlords need those private logins or a local seed)
 
 1. Public → List properties (filters + pagination)
 2. Landlord → Create property (starts `PENDING`, not public yet)
@@ -505,13 +577,11 @@ A single global error handler converts Zod errors, Prisma known errors (P2002/P2
 
 ## Known limitations & future improvements
 
-- **No file upload:** property images are URLs supplied in the request body.
+- **No file upload:** property images are URLs in the request body (the frontend uploads photos to ImgBB first).
 - **No tenant cancellation:** `CANCELLED` is defined in the schema but no endpoint sets it; `Booking.isDeleted` (soft delete) is never set either.
 - **Some lists are not paginated:** a tenant's rentals and payments, a landlord's requests, and public property reviews return all rows.
-- **No refresh tokens:** access tokens last 7 days by default; the role is read from the token, so a role change applies at the next login.
-- **No automated tests** (verification has been manual and end-to-end against real databases and Stripe test mode).
-- **No rate limiting**, and CORS allows all origins.
-- **No frontend:** Stripe's post-payment redirect URLs point to a client that doesn't exist yet (`CLIENT_SUCCESS_URL` / `CLIENT_CANCEL_URL`).
+- **No refresh tokens:** access tokens last 7 days by default. Roles and blocks are read from the database on every request, so they apply at once.
+- **No backend unit tests:** verification is end-to-end, with the Playwright suite in the frontend repo and the Postman collection, against real databases and Stripe test mode.
 - **Linting without type information:** typescript-eslint doesn't support the TypeScript 7 compiler yet, so oxlint is used.
 
 ## Author
@@ -520,4 +590,4 @@ A single global error handler converts Zod errors, Prisma known errors (P2002/P2
 
 ## License
 
-[MIT](LICENSE) © 2026 Zarif Hasan
+Released under the MIT License. See [LICENSE](LICENSE).

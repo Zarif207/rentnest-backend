@@ -34,10 +34,8 @@ const assertSafeTarget = () => {
   }
 };
 
-const ADMIN_EMAIL =
-  process.env.ADMIN_EMAIL ||
-  process.env.SEED_ADMIN_EMAIL ||
-  "admin@rentnest.com";
+// The admin's login is private: it comes from env only.
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.SEED_ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DEMO_PASSWORD = "Password@123";
 
@@ -301,6 +299,7 @@ async function main() {
   }
 
   // Admin: created only if missing; an existing admin is left untouched.
+  if (!ADMIN_EMAIL) throw new Error("Set ADMIN_EMAIL to seed the admin.");
   const existingAdmin = await prisma.user.findUnique({
     where: { email: ADMIN_EMAIL },
     select: { id: true },

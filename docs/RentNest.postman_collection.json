@@ -173,7 +173,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{landlordEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+              "raw": "{\n  \"email\": \"{{landlordEmail}}\",\n  \"password\": \"{{landlordPassword}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3280,7 +3280,7 @@
     },
     {
       "key": "adminEmail",
-      "value": "admin@rentnest.com",
+      "value": "<private-admin-email>",
       "type": "string"
     },
     {
@@ -3290,7 +3290,12 @@
     },
     {
       "key": "landlordEmail",
-      "value": "landlord1@rentnest.com",
+      "value": "<private-landlord-email>",
+      "type": "string"
+    },
+    {
+      "key": "landlordPassword",
+      "value": "<private-landlord-password>",
       "type": "string"
     },
     {
@@ -3305,7 +3310,7 @@
     },
     {
       "key": "observerPassword",
-      "value": "<observer-password>",
+      "value": "Observer-Demo-1",
       "type": "string"
     },
     {

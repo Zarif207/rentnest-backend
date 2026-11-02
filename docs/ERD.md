@@ -248,8 +248,6 @@ stateDiagram-v2
 
 ## Visual diagram (DrawSQL)
 
-![RentNest ERD](./erd.png)
-
-Interactive diagram: https://drawsql.app/teams/zarif-hasan/diagrams/rentnest
+Interactive diagram: [DrawSQL](https://drawsql.app/teams/zarif-hasan/diagrams/rentnest)
 
 To update it, import [`schema.sql`](./schema.sql) into DrawSQL (PostgreSQL).

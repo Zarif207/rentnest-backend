@@ -261,7 +261,7 @@ Example: `GET /api/properties?city=austin&limit=1&sortBy=rentAmount&sortOrder=as
       "owner": {
         "id": "b39e9683-e065-4d8b-a6bd-4669f030eb6c",
         "name": "Rahim Landlord",
-        "email": "landlord1@rentnest.com",
+        "email": "landlord@example.com",
         "phone": "+12125550101"
       }
     }
