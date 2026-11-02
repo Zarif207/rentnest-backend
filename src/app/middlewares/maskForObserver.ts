@@ -17,14 +17,14 @@ const keep = (value: string, start: number, end: number) =>
     : `${value.slice(0, start)}${"*".repeat(Math.max(3, value.length - start - end))}${value.slice(value.length - end)}`;
 
 /** "rahim@gmail.com" → "ra***@gmail.com" */
-export const maskEmail = (email: string) => {
+const maskEmail = (email: string) => {
   const at = email.indexOf("@");
   if (at < 1) return keep(email, 1, 0);
   return `${email.slice(0, Math.min(2, at))}***${email.slice(at)}`;
 };
 
 /** "+8801712345123" → "+880*****123" */
-export const maskPhone = (phone: string) =>
+const maskPhone = (phone: string) =>
   keep(phone, 4, 3).replace(/\*+/, "*****");
 
 const maskId = (id: string) => keep(id, 3, 4);

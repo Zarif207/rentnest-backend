@@ -30,8 +30,8 @@ export const offerSortableFields = [
 export const OFFER_EXPIRY_DAYS = 7;
 
 // Earnest-money deposit: 1% of the agreed price, at least $500 (whole dollars).
-export const DEPOSIT_RATE = 0.01;
-export const MIN_DEPOSIT = 500;
+const DEPOSIT_RATE = 0.01;
+const MIN_DEPOSIT = 500;
 
 export const depositFor = (agreedAmount: number) =>
   Math.max(MIN_DEPOSIT, Math.round(agreedAmount * DEPOSIT_RATE));

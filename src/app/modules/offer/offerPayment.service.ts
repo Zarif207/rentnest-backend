@@ -14,7 +14,7 @@ import {
 import { offerInclude, OfferServices, withDeposit } from "./offer.service.js";
 
 // Set on every deposit Checkout Session; the Stripe webhook routes on it.
-export const SALE_DEPOSIT_TYPE = "sale_deposit";
+const SALE_DEPOSIT_TYPE = "sale_deposit";
 
 export const isDepositSession = (session: Stripe.Checkout.Session) =>
   session.metadata?.type === SALE_DEPOSIT_TYPE;

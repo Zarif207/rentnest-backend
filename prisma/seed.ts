@@ -35,7 +35,7 @@ const assertSafeTarget = () => {
 };
 
 // The admin's login is private: it comes from env only.
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.SEED_ADMIN_EMAIL;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DEMO_PASSWORD = "Password@123";
 

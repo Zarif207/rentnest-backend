@@ -1,6 +1,6 @@
 // The 50 US states plus DC: postal code → full name. `division` on a
 // property always stores the full name.
-export const US_STATES = {
+const US_STATES = {
   AL: "Alabama",
   AK: "Alaska",
   AZ: "Arizona",
