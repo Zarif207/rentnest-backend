@@ -1,4 +1,4 @@
-# 🏠 RentNest API
+# 🏠 RentNest
 
 **Rent or buy a home, in one API.** A REST API for a US home marketplace: landlords list homes for rent or sale, tenants request rentals and make offers, payments run through Stripe, and admins approve landlords and review every listing.
 
