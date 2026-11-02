@@ -109,6 +109,27 @@ Paginated lists accept:
 
 Values outside the rules return 400 (e.g. `sortBy=password`).
 
+### Observer (read-only) accounts
+
+An `OBSERVER` account is for reviewers. It is created only with `npm run observer:create`, never through the API: register accepts only `TENANT` and `LANDLORD`, and admins can't assign roles.
+
+- **Reads:** an observer may call every `GET`/`HEAD` route that allows `ADMIN` or `LANDLORD`. Landlord lists (`/landlord/properties`, `/landlord/requests`, `/landlord/offers`, `/landlord/reviews`) return **every** landlord's records, and single rentals, offers and unapproved listings are readable too. The observer has no notifications of its own.
+- **Writes:** any other method returns **403** `Observer accounts are read-only` before the route runs (one global guard). Only `POST /api/auth/login` is allowed.
+- **Masking:** every response to an observer, except its own `GET /api/auth/me`, has `email` (e.g. `ra***@gmail.com`), `phone` (e.g. `+880*****123`) and Stripe identifiers (`sessionId`, `transactionId`, `paymentIntent`, any `cs_…`/`pi_…` value) masked.
+
+### Security limits
+
+| Limit                                        | Value                                                            |
+| -------------------------------------------- | ---------------------------------------------------------------- |
+| All `/api` routes                            | 300 requests per 15 min per IP                                   |
+| Login and register                           | 10 per 15 min per IP                                             |
+| Starting a rent payment or a deposit         | 20 per 15 min per IP                                             |
+| Creating reviews, offers and rental requests | 30 per 15 min per IP                                             |
+| JSON body size                               | 100 kB (413 `Request body is too large`)                         |
+| CORS                                         | Only origins in `CORS_ORIGINS`; the Stripe webhook is unaffected |
+
+Going over a limit returns **429** in the usual error envelope, with `RateLimit` headers. Login answers `Invalid email or password` for both an unknown email and a wrong password. A 500 response includes an `errorId` that matches the server log; in production it never contains stack traces, SQL or Prisma messages.
+
 ---
 
 ## Health

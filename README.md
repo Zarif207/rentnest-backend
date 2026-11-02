@@ -23,13 +23,26 @@
 
 ## 🔑 Test credentials
 
-| Role     | Email                                               | Password       |
-| -------- | --------------------------------------------------- | -------------- |
-| Admin    | `admin@rentnest.com`                                | `Admin@123`    |
-| Landlord | `landlord1@rentnest.com` · `landlord2@rentnest.com` | `Password@123` |
-| Tenant   | `tenant1@rentnest.com` · `tenant2@rentnest.com`     | `Password@123` |
+| Role                 | Email                                               | Password                        |
+| -------------------- | --------------------------------------------------- | ------------------------------- |
+| Admin                | `admin@rentnest.com`                                | _shared privately with graders_ |
+| Landlord             | `landlord1@rentnest.com` · `landlord2@rentnest.com` | `Password@123`                  |
+| Tenant               | `tenant1@rentnest.com` · `tenant2@rentnest.com`     | `Password@123`                  |
+| Observer (read-only) | `observer@rentnest.dev`                             | _shared privately with graders_ |
+
+The **observer** account can open every admin and landlord screen but change nothing: writes return 403 and emails, phone numbers and Stripe ids are masked. Create it with `npm run observer:create` (see [docs/api.md](docs/api.md#observer-read-only-accounts)).
 
 **Stripe test card:** `4242 4242 4242 4242`, any future expiry date, any CVC. Payments run in Stripe **test mode**; no real money is charged.
+
+## 🔒 Security
+
+- `helmet` headers, no `x-powered-by`, `trust proxy` for one hop, 100 kB JSON limit (the Stripe webhook keeps its raw body).
+- CORS limited to `CORS_ORIGINS`; rate limits on all routes, with stricter ones on login/register, payments and creating offers, rentals and reviews.
+- JWTs are HS256 only; the server won't start with a missing or short (< 32 chars) `JWT_ACCESS_SECRET`. Roles are read from the database on every request.
+- Production errors never include stack traces, SQL or Prisma text; 500s return an `errorId` that matches the server log.
+- The seed refuses non-local databases unless `ALLOW_PROD_SEED=true`, and never resets an existing admin's password (`npm run admin:set-password` does that).
+
+See [docs/api.md](docs/api.md#security-limits) for the exact limits.
 
 ## Overview
 
@@ -391,8 +404,12 @@ npm run dev                 # http://localhost:4000
 | `PORT`                  |          | Local port (default `4000`; not used on Vercel)                                                                 |
 | `NODE_ENV`              |          | `production` hides unexpected error details (set automatically on Vercel)                                       |
 | `GEOCODER_EMAIL`        |          | Contact email in the User-Agent sent to OpenStreetMap Nominatim when geocoding property addresses               |
-| `SEED_ADMIN_EMAIL`      |          | Seeded admin email (default `admin@rentnest.com`)                                                               |
-| `SEED_ADMIN_PASSWORD`   |          | Seeded admin password (default `Admin@123`)                                                                     |
+| `ADMIN_EMAIL`           |          | Admin the seed creates and `admin:set-password` updates (default `admin@rentnest.com`)                          |
+| `ADMIN_PASSWORD`        |          | Password for a new admin (seed) or the new password (`admin:set-password`: 12+ chars, letter, digit, symbol)    |
+| `ALLOW_PROD_SEED`       |          | `true` lets the seed run against a non-local database or with `NODE_ENV=production`                             |
+| `CORS_ORIGINS`          |          | Allowed browser origins, comma-separated (default `http://localhost:3000`)                                      |
+| `OBSERVER_EMAIL`        |          | Read-only account made by `npm run observer:create` (default `observer@rentnest.dev`)                           |
+| `OBSERVER_PASSWORD`     |          | Password for that account (required by the script)                                                              |
 
 ### Stripe webhooks locally
 

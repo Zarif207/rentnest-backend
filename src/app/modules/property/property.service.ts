@@ -293,7 +293,9 @@ const getPropertyById = async (id: string, viewer?: TPropertyViewer) => {
 
   const canSeeUnreviewed =
     viewer !== undefined &&
-    (viewer.role === "ADMIN" || viewer.userId === result?.ownerId);
+    (viewer.role === "ADMIN" ||
+      viewer.role === "OBSERVER" ||
+      viewer.userId === result?.ownerId);
 
   if (!result || (result.reviewStatus !== "APPROVED" && !canSeeUnreviewed)) {
     throw new AppError(httpStatus.NOT_FOUND, "Property not found");

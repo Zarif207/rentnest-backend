@@ -123,8 +123,9 @@ const getPropertyReviews = async (propertyId: string) => {
   return reviews;
 };
 
+// landlordId undefined: every landlord's reviews (observer).
 const getLandlordReviews = async (
-  landlordId: string,
+  landlordId: string | undefined,
   propertyId: string | undefined,
   options: TPaginationOptions,
 ) => {

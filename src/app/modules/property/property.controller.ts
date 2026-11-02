@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 
 import catchAsync from "../../utils/catchAsync.js";
+import { ownerScope } from "../../utils/observer.js";
 import sendResponse from "../../utils/sendResponse.js";
 import pick from "../../utils/pick.js";
 import { paginationFields } from "../../helpers/paginationHelper.js";
@@ -47,7 +48,8 @@ const getMyProperties = catchAsync(async (req, res) => {
   // Every one of their listings, whatever its review status.
   const filters = {
     ...pick(req.query, reviewablePropertyFilterableFields),
-    ownerId: req.user.userId,
+    // An observer sees every landlord's listings.
+    ownerId: ownerScope(req),
   };
   const options = pick(req.query, paginationFields);
   const result = await PropertyServices.getAllProperties(filters, options);

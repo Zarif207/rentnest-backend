@@ -1,7 +1,11 @@
+// OBSERVER is a read-only reviewer account: it can read every landlord and
+// admin screen (GET only, personal data masked) and change nothing. It is
+// created only with `npm run observer:create`, never through the API.
 enum UserRole {
   ADMIN
   LANDLORD
   TENANT
+  OBSERVER
 }
 
 enum UserStatus {

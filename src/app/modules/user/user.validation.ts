@@ -5,7 +5,7 @@ import { userSortableFields } from "./user.constant.js";
 const userQueryValidationSchema = z.object({
   query: z.object({
     searchTerm: z.string().optional(),
-    role: z.enum(["ADMIN", "LANDLORD", "TENANT"]).optional(),
+    role: z.enum(["ADMIN", "LANDLORD", "TENANT", "OBSERVER"]).optional(),
     userStatus: z.enum(["ACTIVE", "BLOCKED"]).optional(),
     landlordStatus: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
     ...paginationHelper.paginationQueryFields(userSortableFields),

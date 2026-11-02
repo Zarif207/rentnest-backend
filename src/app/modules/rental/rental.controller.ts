@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 
 import catchAsync from "../../utils/catchAsync.js";
+import { ownerScope } from "../../utils/observer.js";
 import sendResponse from "../../utils/sendResponse.js";
 import pick from "../../utils/pick.js";
 import { paginationFields } from "../../helpers/paginationHelper.js";
@@ -38,7 +39,7 @@ const getMyRentalRequests = catchAsync(async (req, res) => {
 const getRentalRequestById = catchAsync(async (req, res) => {
   const result = await RentalServices.getRentalRequestById(
     req.params.id as string,
-    req.user.userId,
+    ownerScope(req),
   );
 
   sendResponse(res, {
@@ -51,7 +52,7 @@ const getRentalRequestById = catchAsync(async (req, res) => {
 
 const getLandlordRentalRequests = catchAsync(async (req, res) => {
   const result = await RentalServices.getLandlordRentalRequests(
-    req.user.userId,
+    ownerScope(req),
     req.query.status as TBookingStatus | undefined,
   );
 

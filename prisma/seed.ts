@@ -7,13 +7,38 @@ import type {
   UserRole,
 } from "../generated/prisma/client.js";
 
-// Idempotent: safe to run more than once. The admin password is reset on
-// every run so the printed credentials always work.
+// Idempotent: safe to run more than once. The admin is created only when
+// missing (password from ADMIN_PASSWORD); an existing admin's password is
+// never touched (change it with `npm run admin:set-password`).
+//
+// Refuses to run against production (NODE_ENV=production, or a DATABASE_URL
+// host that isn't local) unless ALLOW_PROD_SEED=true is set.
 
 const SALT_ROUNDS = config.bcrypt_salt_rounds;
 
-const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || "admin@rentnest.com";
-const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || "Admin@123";
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+
+const assertSafeTarget = () => {
+  if (process.env.ALLOW_PROD_SEED === "true") return;
+  let host = "";
+  try {
+    host = new URL(process.env.DATABASE_URL ?? "").hostname;
+  } catch {
+    // An unreadable URL is treated as not local.
+  }
+  if (process.env.NODE_ENV === "production" || !LOCAL_HOSTS.has(host)) {
+    throw new Error(
+      "Refusing to seed: NODE_ENV is production or DATABASE_URL isn't a local database. " +
+        "Set ALLOW_PROD_SEED=true to seed it anyway.",
+    );
+  }
+};
+
+const ADMIN_EMAIL =
+  process.env.ADMIN_EMAIL ||
+  process.env.SEED_ADMIN_EMAIL ||
+  "admin@rentnest.com";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DEMO_PASSWORD = "Password@123";
 
 const categories = ["Apartment", "House", "Studio", "Villa"];
@@ -262,6 +287,8 @@ const demoProperties: {
 ];
 
 async function main() {
+  assertSafeTarget();
+
   // Categories
   const categoryIds = new Map<string, string>();
   for (const name of categories) {
@@ -273,18 +300,28 @@ async function main() {
     categoryIds.set(name, category.id);
   }
 
-  // Admin (password and status reset on every run)
-  const adminPassword = await bcrypt.hash(ADMIN_PASSWORD, SALT_ROUNDS);
-  await prisma.user.upsert({
+  // Admin: created only if missing; an existing admin is left untouched.
+  const existingAdmin = await prisma.user.findUnique({
     where: { email: ADMIN_EMAIL },
-    update: { password: adminPassword, role: "ADMIN", userStatus: "ACTIVE" },
-    create: {
-      name: "RentNest Admin",
-      email: ADMIN_EMAIL,
-      password: adminPassword,
-      role: "ADMIN",
-    },
+    select: { id: true },
   });
+  let adminCreated = false;
+  if (!existingAdmin) {
+    if (!ADMIN_PASSWORD) {
+      throw new Error(
+        `No admin ${ADMIN_EMAIL} yet: set ADMIN_PASSWORD to create it.`,
+      );
+    }
+    await prisma.user.create({
+      data: {
+        name: "RentNest Admin",
+        email: ADMIN_EMAIL,
+        password: await bcrypt.hash(ADMIN_PASSWORD, SALT_ROUNDS),
+        role: "ADMIN",
+      },
+    });
+    adminCreated = true;
+  }
 
   // Demo landlords and tenants (left untouched if they already exist)
   const demoPassword = await bcrypt.hash(DEMO_PASSWORD, SALT_ROUNDS);
@@ -333,7 +370,9 @@ async function main() {
     console.log(`   - ${user.role.padEnd(8)} ${user.email}`);
   console.log("\n   🔐 Admin credentials");
   console.log(`   Email    : ${ADMIN_EMAIL}`);
-  console.log(`   Password : ${ADMIN_PASSWORD}\n`);
+  console.log(
+    `   Password : ${adminCreated ? "the ADMIN_PASSWORD you set" : "unchanged (existing admin)"}\n`,
+  );
 }
 
 main()

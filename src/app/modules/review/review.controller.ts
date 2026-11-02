@@ -1,5 +1,6 @@
 import httpStatus from "http-status";
 import catchAsync from "../../utils/catchAsync.js";
+import { ownerScope } from "../../utils/observer.js";
 import sendResponse from "../../utils/sendResponse.js";
 import { ReviewServices } from "./review.service.js";
 import pick from "../../utils/pick.js";
@@ -31,7 +32,7 @@ const getPropertyReviews = catchAsync(async (req, res) => {
 
 const getLandlordReviews = catchAsync(async (req, res) => {
   const result = await ReviewServices.getLandlordReviews(
-    req.user.userId,
+    ownerScope(req),
     req.query.propertyId as string | undefined,
     pick(req.query, paginationFields),
   );

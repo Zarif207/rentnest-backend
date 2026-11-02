@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 
 import catchAsync from "../../utils/catchAsync.js";
+import { ownerScope } from "../../utils/observer.js";
 import sendResponse from "../../utils/sendResponse.js";
 import pick from "../../utils/pick.js";
 import { paginationFields } from "../../helpers/paginationHelper.js";
@@ -78,7 +79,7 @@ const acceptCounter = catchAsync(async (req, res) => {
 
 const getLandlordOffers = catchAsync(async (req, res) => {
   const result = await OfferServices.getLandlordOffers(
-    req.user.userId,
+    ownerScope(req),
     pick(req.query, ["status"]) as TOfferFilters,
   );
 

@@ -31,7 +31,8 @@ const handlePrismaError = (
         errorDetails: [
           {
             path: "",
-            message: String(err.meta?.cause ?? "Record not found"),
+            // Prisma's meta.cause describes the query, so it stays server-side.
+            message: "Record not found",
           },
         ],
       };

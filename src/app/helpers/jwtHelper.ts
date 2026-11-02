@@ -6,12 +6,14 @@ const generateToken = (
   expiresIn: SignOptions["expiresIn"],
 ) => {
   return jwt.sign(payload, secret, {
+    algorithm: "HS256",
     expiresIn,
   });
 };
 
 const verifyToken = (token: string, secret: Secret) => {
-  return jwt.verify(token, secret) as JwtPayload;
+  // Only HS256 is accepted, so a token can't pick a weaker algorithm.
+  return jwt.verify(token, secret, { algorithms: ["HS256"] }) as JwtPayload;
 };
 
 export const jwtHelper = {

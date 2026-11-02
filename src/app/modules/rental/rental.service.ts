@@ -112,7 +112,11 @@ const getMyRentalRequests = async (
   return rentalRequests;
 };
 
-const getRentalRequestById = async (rentalId: string, userId: string) => {
+// userId undefined: an observer, who may read any request.
+const getRentalRequestById = async (
+  rentalId: string,
+  userId: string | undefined,
+) => {
   const rentalRequest = await prisma.booking.findFirst({
     where: {
       id: rentalId,
@@ -129,6 +133,7 @@ const getRentalRequestById = async (rentalId: string, userId: string) => {
   }
 
   if (
+    userId !== undefined &&
     rentalRequest.tenantId !== userId &&
     rentalRequest.property.ownerId !== userId
   ) {
@@ -141,8 +146,9 @@ const getRentalRequestById = async (rentalId: string, userId: string) => {
   return rentalRequest;
 };
 
+// landlordId undefined: every landlord's requests (observer).
 const getLandlordRentalRequests = async (
-  landlordId: string,
+  landlordId: string | undefined,
   status?: TBookingStatus,
 ) => {
   const rentalRequests = await prisma.booking.findMany({

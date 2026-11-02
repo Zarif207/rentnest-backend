@@ -1,10 +1,15 @@
 import httpStatus from "http-status";
-import { JwtPayload } from "jsonwebtoken";
 import prisma from "../../lib/prisma.js";
 import config from "../../config/index.js";
 import { jwtHelper } from "../helpers/jwtHelper.js";
 import AppError from "../utils/AppError.js";
+import { OBSERVER_ROLE, READ_METHODS } from "../utils/observer.js";
 import { NextFunction, Request, Response } from "express";
+
+// An observer may read anything an admin or a landlord can read.
+const observerMayRead = (req: Request, requiredRoles: string[]) =>
+  READ_METHODS.includes(req.method) &&
+  (requiredRoles.includes("ADMIN") || requiredRoles.includes("LANDLORD"));
 
 const auth = (...requiredRoles: string[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -24,10 +29,7 @@ const auth = (...requiredRoles: string[]) => {
         );
       }
 
-      const decoded = jwtHelper.verifyToken(
-        token,
-        config.jwt_access_secret,
-      ) as JwtPayload;
+      const decoded = jwtHelper.verifyToken(token, config.jwt_access_secret);
 
       const user = await prisma.user.findUnique({
         where: {
@@ -35,6 +37,7 @@ const auth = (...requiredRoles: string[]) => {
         },
         select: {
           id: true,
+          role: true,
           userStatus: true,
         },
       });
@@ -47,9 +50,15 @@ const auth = (...requiredRoles: string[]) => {
         throw new AppError(httpStatus.FORBIDDEN, "User is blocked");
       }
 
-      req.user = decoded;
+      // The role comes from the database, not the token, so a changed role
+      // takes effect without waiting for the token to expire.
+      req.user = { ...decoded, role: user.role };
 
-      if (requiredRoles.length && !requiredRoles.includes(decoded.role)) {
+      if (
+        requiredRoles.length &&
+        !requiredRoles.includes(user.role) &&
+        !(user.role === OBSERVER_ROLE && observerMayRead(req, requiredRoles))
+      ) {
         throw new AppError(httpStatus.FORBIDDEN, "Forbidden");
       }
 

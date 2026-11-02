@@ -240,6 +240,7 @@ const getOfferById = async (id: string, userId: string, role: string) => {
   const offer = await findOffer(id);
   if (
     role !== "ADMIN" &&
+    role !== "OBSERVER" &&
     offer.buyerId !== userId &&
     offer.property.ownerId !== userId
   ) {
@@ -320,8 +321,13 @@ const acceptCounter = async (id: string, buyerId: string) => {
   return result;
 };
 
-const getLandlordOffers = async (ownerId: string, filters: TOfferFilters) => {
-  await expireStaleOffers({ property: { ownerId } });
+// ownerId undefined: every landlord's offers (observer); a read-only view
+// doesn't expire stale offers.
+const getLandlordOffers = async (
+  ownerId: string | undefined,
+  filters: TOfferFilters,
+) => {
+  if (ownerId) await expireStaleOffers({ property: { ownerId } });
   const offers = await prisma.purchaseOffer.findMany({
     where: {
       property: { ownerId },

@@ -239,6 +239,55 @@
           "response": []
         },
         {
+          "name": "Login as Observer (read-only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.success) {",
+                  "  const token = json.data.accessToken;",
+                  "  const role = json.data.user.role.toLowerCase();",
+                  "  pm.collectionVariables.set(\"token\", token);",
+                  "  pm.collectionVariables.set(role + \"Token\", token);",
+                  "  pm.collectionVariables.set(role + \"Id\", json.data.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{observerEmail}}\",\n  \"password\": \"{{observerPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Read-only OBSERVER account (created with `npm run observer:create`). Stores the token in {{token}} and {{observerToken}}. With it, every GET that an admin or landlord may call works (all landlords' records, emails, phones and Stripe ids masked); every POST/PUT/PATCH/DELETE except login returns 403 \"Observer accounts are read-only\"."
+          },
+          "response": []
+        },
+        {
           "name": "Get my profile (current token)",
           "request": {
             "method": "GET",
@@ -3161,6 +3210,44 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "403 observer write is refused",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{observerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Should not be created\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories"]
+            },
+            "description": "Any write with an OBSERVER token returns 403 \"Observer accounts are read-only\"."
+          },
+          "response": []
         }
       ]
     }
@@ -3198,7 +3285,7 @@
     },
     {
       "key": "adminPassword",
-      "value": "Admin@123",
+      "value": "<admin-password>",
       "type": "string"
     },
     {
@@ -3209,6 +3296,21 @@
     {
       "key": "tenantEmail",
       "value": "tenant1@rentnest.com",
+      "type": "string"
+    },
+    {
+      "key": "observerEmail",
+      "value": "observer@rentnest.dev",
+      "type": "string"
+    },
+    {
+      "key": "observerPassword",
+      "value": "<observer-password>",
+      "type": "string"
+    },
+    {
+      "key": "observerToken",
+      "value": "",
       "type": "string"
     },
     {
