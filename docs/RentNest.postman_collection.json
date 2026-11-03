@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RentNest API",
-    "description": "RentNest rental marketplace API (Express, TypeScript, Prisma, PostgreSQL, Stripe).\n\n1. `baseUrl` defaults to the live API (https://rentnest-backend-one.vercel.app). For local development change it to http://localhost:4000.\n2. Run the three Login requests in Auth; tokens are stored automatically.\n3. IDs (propertyId, categoryId, rentalId, paymentId, userId) are captured from responses.\n\nSuccess: { success, message, data, meta? } · Error: { success: false, message, errorDetails }",
+    "description": "RentNest rental marketplace API (Express, TypeScript, Prisma, PostgreSQL, Stripe).\n\n1. `baseUrl` is the live API host (https://rentnest-backend-one.vercel.app); every request path starts with /api. For local development, copy the `localBaseUrl` value (http://localhost:4000) into `baseUrl`.\n2. Run the three Login requests in Auth; tokens are stored automatically.\n3. IDs (propertyId, categoryId, rentalId, paymentId, userId) are captured from responses.\n\nSuccess: { success, message, data, meta? } · Error: { success: false, message, errorDetails }",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -46,7 +46,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Demo Tenant\",\n  \"email\": \"demo.tenant@example.com\",\n  \"password\": \"Password@123\",\n  \"phone\": \"01800000000\",\n  \"role\": \"TENANT\"\n}",
+              "raw": "{\n  \"name\": \"Demo Tenant\",\n  \"email\": \"demo.tenant@example.com\",\n  \"password\": \"Password@123\",\n  \"phone\": \"+12125550142\",\n  \"role\": \"TENANT\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -76,7 +76,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Demo Landlord\",\n  \"email\": \"demo.landlord@example.com\",\n  \"password\": \"Password@123\",\n  \"phone\": \"01700000000\",\n  \"role\": \"LANDLORD\"\n}",
+              "raw": "{\n  \"name\": \"Demo Landlord\",\n  \"email\": \"demo.landlord@example.com\",\n  \"password\": \"Password@123\",\n  \"phone\": \"+13125550178\",\n  \"role\": \"LANDLORD\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3256,6 +3256,11 @@
     {
       "key": "baseUrl",
       "value": "https://rentnest-backend-one.vercel.app",
+      "type": "string"
+    },
+    {
+      "key": "localBaseUrl",
+      "value": "http://localhost:4000",
       "type": "string"
     },
     {

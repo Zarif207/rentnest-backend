@@ -2,6 +2,7 @@
 
 **Rent or buy a home, in one API.** A REST API for a US home marketplace: landlords list homes for rent or sale, tenants request rentals and make offers, payments run through Stripe, and admins approve landlords and review every listing.
 
+[![Live](https://img.shields.io/badge/Live-rentnest--backend--one.vercel.app-2EAD33?logo=vercel&logoColor=white)](https://rentnest-backend-one.vercel.app/api)
 ![Node.js](https://img.shields.io/badge/Node.js-24.x-339933?logo=nodedotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
@@ -29,21 +30,26 @@
 14. [Getting started](#getting-started)
 15. [Scripts](#scripts)
 16. [Deployment](#deployment)
-17. [Testing with Postman](#testing-with-postman)
-18. [Technical challenges solved](#technical-challenges-solved)
-19. [Known limitations & future improvements](#known-limitations--future-improvements)
-20. [Author](#author)
-21. [License](#license)
+17. [Operations](#operations)
+18. [Testing with Postman](#testing-with-postman)
+19. [Technical challenges solved](#technical-challenges-solved)
+20. [Known limitations & future improvements](#known-limitations--future-improvements)
+21. [Author](#author)
+22. [License](#license)
 
 ## 🔗 Links
 
-|                     |                                                                                                   |
-| ------------------- | ------------------------------------------------------------------------------------------------- |
-| **Live API**        | https://rentnest-backend-one.vercel.app                                                           |
-| **Frontend**        | [Zarif207/RentNest](https://github.com/Zarif207/RentNest) (Next.js)                               |
-| **API reference**   | [`docs/api.md`](docs/api.md)                                                                      |
-| **Postman**         | [`docs/RentNest.postman_collection.json`](docs/RentNest.postman_collection.json)                  |
-| **Database design** | [`docs/ERD.md`](docs/ERD.md) · [DrawSQL](https://drawsql.app/teams/zarif-hasan/diagrams/rentnest) |
+|                     |                                                                                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Live API**        | [https://rentnest-backend-one.vercel.app/api](https://rentnest-backend-one.vercel.app/api)                       |
+| **Health check**    | [https://rentnest-backend-one.vercel.app](https://rentnest-backend-one.vercel.app) (returns the health response) |
+| **Frontend site**   | [https://rentnest-realty.vercel.app](https://rentnest-realty.vercel.app)                                         |
+| **Frontend repo**   | [Zarif207/RentNest](https://github.com/Zarif207/RentNest) (Next.js)                                              |
+| **API docs**        | [`docs/api.md`](docs/api.md)                                                                                     |
+| **Postman**         | [`docs/RentNest.postman_collection.json`](docs/RentNest.postman_collection.json)                                 |
+| **Database design** | [`docs/ERD.md`](docs/ERD.md) · [DrawSQL](https://drawsql.app/teams/zarif-hasan/diagrams/rentnest)                |
+
+Hosting: Vercel. Database: Prisma Postgres. Payments: Stripe (test mode).
 
 ## 🔑 Demo accounts
 
@@ -466,7 +472,7 @@ npm run dev                 # http://localhost:4000
 | Variable                | Required | Description                                                                                                     |
 | ----------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`          | ✅       | PostgreSQL connection string                                                                                    |
-| `JWT_ACCESS_SECRET`     | ✅       | Secret for signing access tokens (long random string)                                                           |
+| `JWT_ACCESS_SECRET`     | ✅       | Secret for signing access tokens (random string, 32+ characters)                                                |
 | `JWT_ACCESS_EXPIRES_IN` |          | Token lifetime (default `7d`)                                                                                   |
 | `BCRYPT_SALT_ROUNDS`    |          | bcrypt cost factor (default `10`)                                                                               |
 | `STRIPE_SECRET`         | ✅       | Stripe secret key (`sk_test_...`)                                                                               |
@@ -521,21 +527,35 @@ The API runs on **Vercel** as a single serverless function:
 **Steps**
 
 1. Import the GitHub repo into Vercel. Pushes to `main` deploy to production.
-2. Add the environment variables above in **Project → Settings → Environment Variables** (Production). `DATABASE_URL` comes from the connected database.
-3. Apply migrations against the production database from your machine (with `DATABASE_URL` pointing to it). Seeding production is optional and refused unless `ALLOW_PROD_SEED=true`:
-   ```bash
-   npm run db:deploy
-   npm run seed   # optional, with ALLOW_PROD_SEED=true
-   ```
+2. Add these in **Project → Settings → Environment Variables** (Production). Names and shapes only:
+   - `DATABASE_URL`: the Prisma Postgres connection string.
+   - `JWT_ACCESS_SECRET` (random, 32+ characters) and `JWT_ACCESS_EXPIRES_IN` (e.g. `7d`).
+   - `STRIPE_SECRET` (`sk_test_...`) and `STRIPE_WEBHOOK_SECRET` (`whsec_...`).
+   - `CORS_ORIGINS`: `https://rentnest-realty.vercel.app` (comma-separated if there are more).
+   - `CLIENT_SUCCESS_URL`: `https://rentnest-realty.vercel.app/payment/success`; `CLIENT_CANCEL_URL`: `https://rentnest-realty.vercel.app/payment/cancel`.
+   - `GEOCODER_EMAIL`: a contact email for OpenStreetMap Nominatim.
+   - Script-only, set in your local shell and not in Vercel: `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `OBSERVER_EMAIL`, `OBSERVER_PASSWORD`, `ALLOW_PROD_SEED`.
+3. Apply migrations as described in [Operations](#operations).
 4. In the Stripe Dashboard (test mode) add a webhook endpoint:
    - URL: `https://rentnest-backend-one.vercel.app/api/payments/webhook`
    - Events: `checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_failed`, `checkout.session.async_payment_succeeded`
    - Put its signing secret in `STRIPE_WEBHOOK_SECRET` and redeploy.
 
+## Operations
+
+Run these from your machine, with `DATABASE_URL` in your shell pointing at the **direct** Prisma Postgres connection string. Only the owner runs them.
+
+```bash
+npm run db:deploy            # prisma migrate deploy: applies pending migrations
+npm run admin:set-password   # rotates the admin password (reads ADMIN_EMAIL, ADMIN_PASSWORD)
+npm run observer:create      # creates or updates the read-only observer (reads OBSERVER_EMAIL, OBSERVER_PASSWORD)
+npm run seed                 # refuses production unless ALLOW_PROD_SEED=true
+```
+
 ## Testing with Postman
 
 1. **Import** [`docs/RentNest.postman_collection.json`](docs/RentNest.postman_collection.json).
-2. **`baseUrl`** defaults to the live API (`https://rentnest-backend-one.vercel.app`). For local development, edit the collection variable `baseUrl` to `http://localhost:4000`.
+2. **`baseUrl`** is the live API host (`https://rentnest-backend-one.vercel.app`); request paths start with `/api`. For local development, set `baseUrl` to the `localBaseUrl` value (`http://localhost:4000`).
 3. Run **Auth → Login as Tenant** or **Login as Observer (read-only)** (the demo values are filled in). Admin and landlord logins need the private `adminEmail` / `adminPassword` and `landlordEmail` / `landlordPassword` collection variables, or accounts from your own local seed. Tokens are saved automatically (`adminToken`, `landlordToken`, `tenantToken`, `observerToken`, and `token` for the last login). Each folder uses the right token.
 4. IDs (`propertyId`, `categoryId`, `rentalId`, `paymentId`, `sessionId`, `userId`) are captured from responses, so requests can be run in order.
 

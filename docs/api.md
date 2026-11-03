@@ -1,6 +1,6 @@
 # RentNest API Reference
 
-- **Base URL:** `https://rentnest-backend-one.vercel.app` (local: `http://localhost:4000`)
+- **Base URL:** `https://rentnest-backend-one.vercel.app` (every path below starts with `/api`, so the live API is `https://rentnest-backend-one.vercel.app/api`; local: `http://localhost:4000`). Health check: `GET https://rentnest-backend-one.vercel.app/`. Frontend: [rentnest-realty.vercel.app](https://rentnest-realty.vercel.app).
 - **Postman:** [`RentNest.postman_collection.json`](./RentNest.postman_collection.json)
 - All paths below are relative to the base URL. Request bodies are JSON (`Content-Type: application/json`).
 
