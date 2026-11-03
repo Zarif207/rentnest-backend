@@ -14,28 +14,36 @@
 
 ## Contents
 
-1. [Links](#-links)
-2. [Demo accounts](#-demo-accounts)
-3. [Security](#-security)
-4. [Overview](#overview)
-5. [Features](#features)
-6. [Tech stack](#tech-stack)
-7. [Architecture](#architecture)
-8. [Project structure](#project-structure)
-9. [Database](#database)
-10. [Payment flow](#payment-flow)
-11. [API reference](#api-reference)
-12. [Response & error format](#response--error-format)
-13. [Filtering, search, pagination & sorting](#filtering-search-pagination--sorting)
-14. [Getting started](#getting-started)
-15. [Scripts](#scripts)
-16. [Deployment](#deployment)
-17. [Operations](#operations)
-18. [Testing with Postman](#testing-with-postman)
-19. [Technical challenges solved](#technical-challenges-solved)
-20. [Known limitations & future improvements](#known-limitations--future-improvements)
-21. [Author](#author)
-22. [License](#license)
+- [🏠 RentNest API](#-rentnest-api)
+  - [Contents](#contents)
+  - [🔗 Links](#-links)
+  - [🔑 Demo accounts](#-demo-accounts)
+  - [🔒 Security](#-security)
+  - [Overview](#overview)
+  - [Features](#features)
+  - [Tech stack](#tech-stack)
+  - [Architecture](#architecture)
+  - [Project structure](#project-structure)
+  - [Database](#database)
+    - [Rental lifecycle](#rental-lifecycle)
+    - [Listing review](#listing-review)
+  - [Payment flow](#payment-flow)
+  - [API reference](#api-reference)
+  - [Response \& error format](#response--error-format)
+  - [Filtering, search, pagination \& sorting](#filtering-search-pagination--sorting)
+  - [Getting started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Setup](#setup)
+    - [Environment variables](#environment-variables)
+    - [Stripe webhooks locally](#stripe-webhooks-locally)
+  - [Scripts](#scripts)
+  - [Deployment](#deployment)
+  - [Operations](#operations)
+  - [Testing with Postman](#testing-with-postman)
+  - [Technical challenges solved](#technical-challenges-solved)
+  - [Known limitations \& future improvements](#known-limitations--future-improvements)
+  - [Author](#author)
+  - [License](#license)
 
 ## 🔗 Links
 
@@ -50,6 +58,7 @@
 | **Database design** | [`docs/ERD.md`](docs/ERD.md) · [DrawSQL](https://drawsql.app/teams/zarif-hasan/diagrams/rentnest)                |
 
 Hosting: Vercel. Database: Prisma Postgres. Payments: Stripe (test mode).
+
 
 ## 🔑 Demo accounts
 
